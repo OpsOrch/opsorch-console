@@ -3,12 +3,7 @@
 import Image from "next/image";
 import { useMemo } from "react";
 import { AppShell } from "@/app/components/AppShell";
-import { IncidentsPanel } from "@/app/components/IncidentsPanel";
-import { LogsPanel } from "@/app/components/LogsPanel";
-import { MetricsPanel } from "@/app/components/MetricsPanel";
-import { TicketsPanel } from "@/app/components/TicketsPanel";
-import { MessagingPanel } from "@/app/components/MessagingPanel";
-import { ServicesPanel } from "@/app/components/ServicesPanel";
+import { CopilotPanel } from "@/app/components/CopilotPanel";
 
 export default function Home() {
   const hero = useMemo(
@@ -28,12 +23,7 @@ export default function Home() {
       hero={hero}
     >
       <div className="grid grid-cols-1 gap-6">
-        <IncidentsPanel />
-        <LogsPanel />
-        <MetricsPanel />
-        <TicketsPanel />
-        <MessagingPanel />
-        <ServicesPanel />
+        <CopilotPanel />
       </div>
     </AppShell>
   );

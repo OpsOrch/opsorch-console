@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { getApiBaseUrl, trimTrailingSlash } from "@/app/lib/api";
 import { Section, Field, Pill } from "@/app/lib/ui";
 
-function useHealth(baseUrl: string) {
+function useHealth() {
   const [status, setStatus] = useState<"idle" | "ok" | "error">("idle");
   const [message, setMessage] = useState<string>("");
 
@@ -36,7 +36,7 @@ function useHealth(baseUrl: string) {
 export function SettingsPanel() {
   const baseUrl = useMemo(() => trimTrailingSlash(getApiBaseUrl()), []);
   const displayBaseUrl = baseUrl || "Configured via server proxy env";
-  const health = useHealth(baseUrl);
+  const health = useHealth();
 
   return (
     <Section

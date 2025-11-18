@@ -68,3 +68,45 @@ export type Service = {
   tags?: Record<string, string>;
   metadata?: Record<string, unknown>;
 };
+
+export type CopilotLink = {
+  label: string;
+  url: string;
+};
+
+export type MetricReference = {
+  expression: string;
+  start?: string;
+  end?: string;
+  step?: string;
+  scope?: string;
+};
+
+export type LogReference = {
+  query: string;
+  start?: string;
+  end?: string;
+  service?: string;
+  scope?: string;
+};
+
+export type CopilotReferences = {
+  incidents?: string[];
+  services?: string[];
+  metrics?: MetricReference[];
+  logs?: LogReference[];
+  tickets?: string[];
+};
+
+export type CopilotAnswer = {
+  conclusion: string;
+  evidence?: string[];
+  missing?: string[];
+  actions?: { label: string; type: string; payload?: unknown }[];
+  links?: CopilotLink[];
+  references?: CopilotReferences;
+  data?: unknown;
+  confidence?: number;
+  conversationId?: string;
+  responseId?: string;
+};
