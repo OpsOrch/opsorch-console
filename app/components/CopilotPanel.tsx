@@ -16,6 +16,10 @@ type CopilotApiResponse = CopilotAnswer & { answer?: CopilotAnswer };
 
 type CopilotContentItem = { type?: string; text?: string };
 
+function getChatId(candidate?: CopilotAnswer) {
+  return candidate?.chatId;
+}
+
 function parseJsonString(text?: unknown) {
   if (typeof text !== "string") return undefined;
   const trimmed = text.trim();
@@ -47,6 +51,8 @@ function normalizeAnswer(payload: CopilotApiResponse): CopilotAnswer {
     structured ??
     contentArray;
 
+  const derivedChatId = getChatId(answer) || getChatId(payload);
+
   return {
     conclusion: derivedConclusion,
     evidence: answer.evidence,
@@ -56,8 +62,7 @@ function normalizeAnswer(payload: CopilotApiResponse): CopilotAnswer {
     references: answer.references,
     data: derivedData,
     confidence: answer.confidence,
-    conversationId: answer.conversationId,
-    responseId: answer.responseId,
+    chatId: derivedChatId,
   };
 }
 
@@ -139,27 +144,31 @@ function stringifyData(data: unknown) {
 
 export function CopilotPanel() {
   const [question, setQuestion] = useState("");
-  const [conversationId, setConversationId] = useState<string | undefined>();
+  const [chatId, setChatId] = useState<string | undefined>();
   const [turns, setTurns] = useState<CopilotTurn[]>([]);
   const state = useAsyncState();
   const historyRef = useRef<HTMLDivElement | null>(null);
 
-  const sessionLabel = useMemo(() => (conversationId ? conversationId.slice(0, 8) : "New session"), [conversationId]);
+  const questionPlaceholder = useMemo(
+    () => (turns.length > 0 ? undefined : "Summarize the last sev1 incidents and correlate logs/metrics for checkout-service"),
+    [turns.length],
+  );
+  const showSessionStamp = Boolean(chatId);
 
   const ask = async () => {
     const trimmed = question.trim();
     if (!trimmed || state.loading) return;
 
     const sessionToUse =
-      conversationId || `session-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+      chatId || `chat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 
     setTurns((prev) => [...prev, { id: makeId("user"), role: "user", text: trimmed }]);
     setQuestion("");
-    setConversationId((prev) => prev || sessionToUse);
+    setChatId((prev) => prev || sessionToUse);
     state.start();
 
     try {
-      const payload: Record<string, string> = { message: trimmed, conversationId: sessionToUse };
+      const payload: Record<string, string> = { message: trimmed, chatId: sessionToUse };
 
       const res = await fetch("/api/copilot", {
         method: "POST",
@@ -175,7 +184,7 @@ export function CopilotPanel() {
       const data = (await res.json()) as CopilotApiResponse;
       const answer = normalizeAnswer(data);
       const conclusionText = answer.conclusion || "No conclusion returned.";
-      setConversationId(answer.conversationId || sessionToUse);
+      setChatId(answer.chatId || sessionToUse);
       setTurns((prev) => [...prev, { id: makeId("copilot"), role: "copilot", text: conclusionText, answer: { ...answer, conclusion: conclusionText } }]);
       state.succeed();
     } catch (err) {
@@ -194,18 +203,16 @@ export function CopilotPanel() {
   const canAsk = question.trim().length > 0 && !state.loading;
 
   return (
-    <Section
+    <div className="relative">
+      <Section
       title="OpsOrch Copilot"
       description="Ask operational questions within the console operator scope (incidents, logs, metrics, tickets, messaging)."
       action={
         <div className="flex items-center gap-3 text-xs">
-          <span className="inline-flex h-9 min-w-[110px] items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-700 shadow-sm">
-            {sessionLabel}
-          </span>
           <button
             type="button"
             onClick={() => {
-              setConversationId(undefined);
+              setChatId(undefined);
               setTurns([]);
             }}
             className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
@@ -363,7 +370,7 @@ export function CopilotPanel() {
             <TextArea
               value={question}
               onChange={setQuestion}
-              placeholder="Summarize the last sev1 incidents and correlate logs/metrics for checkout-service"
+              placeholder={questionPlaceholder}
             />
           }
         />
@@ -379,6 +386,15 @@ export function CopilotPanel() {
           {state.error ? <Pill label={state.error} tone="error" /> : null}
         </div>
       </div>
-    </Section>
+      </Section>
+      {showSessionStamp ? (
+        <span
+          aria-hidden="true"
+          className="pointer-events-none absolute right-6 top-2 text-[7px] font-semibold uppercase tracking-[0.3em] text-slate-300 opacity-55"
+        >
+          {chatId}
+        </span>
+      ) : null}
+    </div>
   );
 }

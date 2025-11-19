@@ -10,10 +10,23 @@ const COPILOT_BASE_URL = trimTrailingSlash(
     "http://localhost:6060",
 );
 
+function propagateChatId(payload: unknown, fallback?: string) {
+  if (!payload || typeof payload !== "object" || payload === null) return;
+  const target = payload as { chatId?: unknown; answer?: unknown };
+  const chatCandidate = typeof target.chatId === "string" ? target.chatId : undefined;
+  const resolved = chatCandidate || fallback;
+  if (resolved && !chatCandidate) {
+    target.chatId = resolved;
+  }
+  if (target.answer && typeof target.answer === "object") {
+    propagateChatId(target.answer, resolved);
+  }
+}
+
 export async function POST(req: NextRequest) {
-  let body: { message?: string; conversationId?: string };
+  let body: { message?: string; chatId?: string };
   try {
-    body = (await req.json()) as { message?: string; conversationId?: string };
+    body = (await req.json()) as { message?: string; chatId?: string };
   } catch {
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
@@ -23,8 +36,9 @@ export async function POST(req: NextRequest) {
   }
 
   const payload: Record<string, string> = { message: body.message };
-  if (body.conversationId) {
-    payload.conversationId = body.conversationId;
+  const sessionId = body.chatId;
+  if (sessionId) {
+    payload.chatId = sessionId;
   }
 
   try {
@@ -45,6 +59,7 @@ export async function POST(req: NextRequest) {
     if (contentType.includes("application/json")) {
       try {
         const data = text ? JSON.parse(text) : {};
+        propagateChatId(data, sessionId);
         return NextResponse.json(data, { status: res.status });
       } catch {
         return NextResponse.json({ error: "Invalid JSON from copilot" }, { status: 502 });

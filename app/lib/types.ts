@@ -107,6 +107,5 @@ export type CopilotAnswer = {
   references?: CopilotReferences;
   data?: unknown;
   confidence?: number;
-  conversationId?: string;
-  responseId?: string;
+  chatId?: string;
 };
