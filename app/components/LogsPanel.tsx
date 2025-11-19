@@ -1,9 +1,13 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAsyncState } from "@/app/lib/hooks";
 import { requestJSON } from "@/app/lib/api";
-import { LogEntry } from "@/app/lib/types";
+import { LogEntry, LogReference } from "@/app/lib/types";
 import { Field, Pill, Section, TextInput } from "@/app/lib/ui";
 import { formatDate } from "@/app/lib/utils";
+type LogsPanelProps = {
+  initialReference?: LogReference;
+  autoRun?: boolean;
+};
 
 const parseJsonMessage = (value: string) => {
   const trimmed = value.trim();
@@ -55,15 +59,30 @@ const renderLogMessage = (message: LogEntry["message"]) => {
   return <p className="mt-1 whitespace-pre-wrap text-slate-800">{String(message)}</p>;
 };
 
-export function LogsPanel() {
-  const logState = useAsyncState();
-  const [logQuery, setLogQuery] = useState(() => ({
-    query: "service:error OR level:error",
-    start: new Date(Date.now() - 60 * 60 * 1000).toISOString().slice(0, 16),
-    end: new Date().toISOString().slice(0, 16),
+const toInputTimestamp = (value?: string) => {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toISOString().slice(0, 16);
+};
+
+const deriveLogQuery = (reference?: LogReference) => {
+  const defaultEnd = new Date();
+  const defaultStart = new Date(defaultEnd.getTime() - 60 * 60 * 1000);
+  return {
+    query: reference?.query || "service:error OR level:error",
+    start: toInputTimestamp(reference?.start) || defaultStart.toISOString().slice(0, 16),
+    end: toInputTimestamp(reference?.end) || defaultEnd.toISOString().slice(0, 16),
     limit: "100",
-  }));
+  };
+};
+
+export function LogsPanel({ initialReference, autoRun = false }: LogsPanelProps = {}) {
+  const logState = useAsyncState();
+  const [logQuery, setLogQuery] = useState(() => deriveLogQuery(initialReference));
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const { start, succeed, fail } = logState;
+  const autoRunRef = useRef(autoRun);
 
   const setRangeMinutes = (mins: number) => {
     const end = new Date();
@@ -71,16 +90,16 @@ export function LogsPanel() {
     setLogQuery((q) => ({ ...q, start: start.toISOString().slice(0, 16), end: end.toISOString().slice(0, 16) }));
   };
 
-  const runLogQuery = async () => {
-    logState.start();
+  const executeLogQuery = useCallback(async (query: typeof logQuery) => {
+    start();
     try {
       const payload: Record<string, unknown> = {
-        query: logQuery.query,
-        start: new Date(logQuery.start).toISOString(),
-        end: new Date(logQuery.end).toISOString(),
+        query: query.query,
+        start: new Date(query.start).toISOString(),
+        end: new Date(query.end).toISOString(),
       };
-      const limitVal = Number(logQuery.limit);
-      if (!Number.isNaN(limitVal) && logQuery.limit) {
+      const limitVal = Number(query.limit);
+      if (!Number.isNaN(limitVal) && query.limit) {
         payload.limit = limitVal;
       }
       const res = await requestJSON<LogEntry[]>("/logs/query", {
@@ -88,14 +107,28 @@ export function LogsPanel() {
         body: JSON.stringify(payload),
       });
       setLogs(res);
-      logState.succeed();
+      succeed();
     } catch (err) {
-      logState.fail(err);
+      fail(err);
     }
+  }, [fail, setLogs, start, succeed]);
+
+  const runLogQuery = async () => {
+    await executeLogQuery(logQuery);
   };
+
+  useEffect(() => {
+    if (!autoRunRef.current) return;
+    autoRunRef.current = false;
+    const frame = requestAnimationFrame(() => {
+      void executeLogQuery(logQuery);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [executeLogQuery, logQuery]);
 
   return (
     <Section
+      id="logs-panel"
       title="Logs"
       description="Run log searches over the connected source." 
       action={

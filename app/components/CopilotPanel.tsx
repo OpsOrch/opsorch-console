@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CopilotAnswer, CopilotReferences } from "@/app/lib/types";
+import { CopilotAnswer, CopilotReferences, LogReference, MetricReference } from "@/app/lib/types";
 import { useAsyncState } from "@/app/lib/hooks";
 import { Field, Pill, Section, TextArea } from "@/app/lib/ui";
 
@@ -66,7 +66,33 @@ function normalizeAnswer(payload: CopilotApiResponse): CopilotAnswer {
   };
 }
 
-function ReferenceLinks({ references }: { references?: CopilotReferences }) {
+function buildMetricHref(reference: MetricReference) {
+  const params = new URLSearchParams();
+  if (reference.expression) params.set("expression", reference.expression);
+  if (reference.start) params.set("start", reference.start);
+  if (reference.end) params.set("end", reference.end);
+  if (reference.step) params.set("step", reference.step);
+  if (reference.scope) params.set("scope", reference.scope);
+  const query = params.toString();
+  return query ? `/metrics?${query}` : "/metrics";
+}
+
+function buildLogHref(reference: LogReference) {
+  const params = new URLSearchParams();
+  if (reference.query) params.set("query", reference.query);
+  if (reference.start) params.set("start", reference.start);
+  if (reference.end) params.set("end", reference.end);
+  if (reference.service) params.set("service", reference.service);
+  if (reference.scope) params.set("scope", reference.scope);
+  const query = params.toString();
+  return query ? `/logs?${query}` : "/logs";
+}
+
+function ReferenceLinks({
+  references,
+}: {
+  references?: CopilotReferences;
+}) {
   if (!references) return null;
   const { incidents, services, metrics, logs, tickets } = references;
   if (!incidents?.length && !services?.length && !metrics?.length && !logs?.length && !tickets?.length) return null;
@@ -100,32 +126,60 @@ function ReferenceLinks({ references }: { references?: CopilotReferences }) {
           Service {svc}
         </a>
       ))) : null}
-      {tickets?.length ? renderList(tickets.map((t) => (
-        <span
-          key={`ticket-${t}`}
-          className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-700"
-        >
-          Ticket {t}
-        </span>
-      ))) : null}
-      {metrics?.length ? renderList(metrics.map((m, idx) => (
-        <span
-          key={`metric-${idx}`}
-          className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-700"
-          title={`Window: ${m.start || "?"} → ${m.end || "?"}${m.scope ? ` scope=${m.scope}` : ""}`}
-        >
-          Metric {m.expression}
-        </span>
-      ))) : null}
-      {logs?.length ? renderList(logs.map((l, idx) => (
-        <span
-          key={`log-${idx}`}
-          className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 font-semibold text-slate-700"
-          title={`Window: ${l.start || "?"} → ${l.end || "?"}${l.service ? ` svc=${l.service}` : ""}${l.scope ? ` scope=${l.scope}` : ""}`}
-        >
-          Logs {l.query}
-        </span>
-      ))) : null}
+      {tickets?.length
+        ? renderList(
+            tickets.map((t) => {
+              const label = `Ticket ${t}`;
+              const href = t ? `/tickets?ticketId=${encodeURIComponent(t)}` : "/tickets";
+              return (
+                <a
+                  key={`ticket-${t}`}
+                  href={href}
+                  className="inline-flex items-center gap-1 rounded-full border border-[#cfeff0] bg-[#f4fcfc] px-3 py-1 text-xs font-semibold text-[#0f5f66] transition hover:border-[#55cfd0] hover:text-[#0b2f33]"
+                  title="Open in tickets"
+                >
+                  {label}
+                </a>
+              );
+            }),
+          )
+        : null}
+      {metrics?.length
+        ? renderList(
+            metrics.map((m, idx) => {
+              const content = `Metric ${m.expression}`;
+              const tooltip = `Window: ${m.start || "?"} → ${m.end || "?"}${m.scope ? ` scope=${m.scope}` : ""}`;
+              return (
+                <a
+                  key={`metric-${idx}`}
+                  href={buildMetricHref(m)}
+                  className="inline-flex items-center gap-1 rounded-full border border-[#cfeff0] bg-[#f4fcfc] px-3 py-1 text-xs font-semibold text-[#0f5f66] transition hover:border-[#55cfd0] hover:text-[#0b2f33]"
+                  title={`Open in metrics • ${tooltip}`}
+                >
+                  {content}
+                </a>
+              );
+            }),
+          )
+        : null}
+      {logs?.length
+        ? renderList(
+            logs.map((l, idx) => {
+              const content = `Logs ${l.query}`;
+              const tooltip = `Window: ${l.start || "?"} → ${l.end || "?"}${l.service ? ` svc=${l.service}` : ""}${l.scope ? ` scope=${l.scope}` : ""}`;
+              return (
+                <a
+                  key={`log-${idx}`}
+                  href={buildLogHref(l)}
+                  className="inline-flex items-center gap-1 rounded-full border border-[#cfeff0] bg-[#f4fcfc] px-3 py-1 text-xs font-semibold text-[#0f5f66] transition hover:border-[#55cfd0] hover:text-[#0b2f33]"
+                  title={`Open in logs • ${tooltip}`}
+                >
+                  {content}
+                </a>
+              );
+            }),
+          )
+        : null}
     </div>
   );
 }
@@ -159,16 +213,15 @@ export function CopilotPanel() {
     const trimmed = question.trim();
     if (!trimmed || state.loading) return;
 
-    const sessionToUse =
-      chatId || `chat-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-
     setTurns((prev) => [...prev, { id: makeId("user"), role: "user", text: trimmed }]);
     setQuestion("");
-    setChatId((prev) => prev || sessionToUse);
     state.start();
 
     try {
-      const payload: Record<string, string> = { message: trimmed, chatId: sessionToUse };
+      const payload: Record<string, string> = { message: trimmed };
+      if (chatId) {
+        payload.chatId = chatId;
+      }
 
       const res = await fetch("/api/copilot", {
         method: "POST",
@@ -184,7 +237,7 @@ export function CopilotPanel() {
       const data = (await res.json()) as CopilotApiResponse;
       const answer = normalizeAnswer(data);
       const conclusionText = answer.conclusion || "No conclusion returned.";
-      setChatId(answer.chatId || sessionToUse);
+      setChatId((prev) => (answer.chatId ? answer.chatId : prev));
       setTurns((prev) => [...prev, { id: makeId("copilot"), role: "copilot", text: conclusionText, answer: { ...answer, conclusion: conclusionText } }]);
       state.succeed();
     } catch (err) {
@@ -205,8 +258,7 @@ export function CopilotPanel() {
   return (
     <div className="relative">
       <Section
-      title="OpsOrch Copilot"
-      description="Ask operational questions within the console operator scope (incidents, logs, metrics, tickets, messaging)."
+      title="Copilot"
       action={
         <div className="flex items-center gap-3 text-xs">
           <button
@@ -224,9 +276,7 @@ export function CopilotPanel() {
     >
       <div ref={historyRef} className="grid max-h-[32rem] gap-3 overflow-y-auto pr-1">
         {turns.length === 0 ? (
-          <p className="text-sm text-slate-600">
-            No Copilot conversation yet. Ask about incidents, nearby log spikes, or correlating latency with CPU/traffic.
-          </p>
+          <p className="text-sm text-slate-600">Start typing to ask about incidents, logs, metrics, tickets, or messaging.</p>
         ) : (
           turns.map((turn) => {
             const isUser = turn.role === "user";

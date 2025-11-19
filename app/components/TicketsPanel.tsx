@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { requestJSON } from "@/app/lib/api";
 import { useAsyncState } from "@/app/lib/hooks";
@@ -6,7 +6,11 @@ import { Ticket } from "@/app/lib/types";
 import { formatDate, stringify } from "@/app/lib/utils";
 import { Field, Pill, Section, Select, TextArea, TextInput } from "@/app/lib/ui";
 
-export function TicketsPanel() {
+type TicketsPanelProps = {
+  initialTicketId?: string;
+};
+
+export function TicketsPanel({ initialTicketId }: TicketsPanelProps = {}) {
   const router = useRouter();
   const ticketState = useAsyncState();
   const [ticketForm, setTicketForm] = useState({ title: "", description: "" });
@@ -18,6 +22,7 @@ export function TicketsPanel() {
   const [searchAssignee, setSearchAssignee] = useState("");
   const [searchReporter, setSearchReporter] = useState("");
   const [searchLimit, setSearchLimit] = useState("25");
+  const { start: startTicketAction, succeed: finishTicketAction, fail: failTicketAction } = ticketState;
 
   const ticketStatusOptions = [
     { value: "open", label: "Open" },
@@ -96,8 +101,30 @@ export function TicketsPanel() {
     }
   };
 
+  const loadTicketFromReference = useCallback(async (ticketId: string) => {
+    if (!ticketId) return;
+    startTicketAction();
+    try {
+      const res = await requestJSON<Ticket>(`/tickets/${ticketId}`);
+      setTickets((prev) => [res, ...prev.filter((t) => t.id !== res.id)]);
+      setSelectedTicket(res);
+      finishTicketAction();
+    } catch (err) {
+      failTicketAction(err);
+    }
+  }, [failTicketAction, finishTicketAction, setSelectedTicket, setTickets, startTicketAction]);
+
+  useEffect(() => {
+    if (!initialTicketId) return;
+    const frame = requestAnimationFrame(() => {
+      loadTicketFromReference(initialTicketId);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [initialTicketId, loadTicketFromReference]);
+
   return (
     <Section
+      id="tickets-panel"
       title="Tickets"
       description="Create tickets and query by keyword, status, reporter, or assignee."
     >

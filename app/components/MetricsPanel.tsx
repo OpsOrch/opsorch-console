@@ -1,19 +1,59 @@
-import { useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useAsyncState } from "@/app/lib/hooks";
 import { requestJSON } from "@/app/lib/api";
-import { MetricSeries } from "@/app/lib/types";
+import { MetricReference, MetricSeries } from "@/app/lib/types";
 import { formatDate } from "@/app/lib/utils";
 import { Field, Pill, Section, TextInput } from "@/app/lib/ui";
 
-export function MetricsPanel() {
+type MetricsPanelProps = {
+  initialReference?: MetricReference;
+  autoRun?: boolean;
+};
+
+const toInputTimestamp = (value?: string) => {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return date.toISOString().slice(0, 16);
+};
+
+const parseStepSeconds = (value?: string) => {
+  if (!value) return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  const numeric = Number(trimmed);
+  if (!Number.isNaN(numeric) && numeric > 0) {
+    return String(Math.floor(numeric));
+  }
+
+  const match = trimmed.match(/^([0-9]+)\s*(s|sec|secs|second|seconds|m|min|mins|minute|minutes)$/i);
+  if (match) {
+    const raw = Number(match[1]);
+    if (Number.isNaN(raw) || raw <= 0) return undefined;
+    const unit = match[2].toLowerCase();
+    return unit.startsWith("m") ? String(raw * 60) : String(raw);
+  }
+
+  return undefined;
+};
+
+const deriveMetricQuery = (reference?: MetricReference) => {
+  const defaultEnd = new Date();
+  const defaultStart = new Date(defaultEnd.getTime() - 30 * 60 * 1000);
+  return {
+    expression: reference?.expression || "up",
+    start: toInputTimestamp(reference?.start) || defaultStart.toISOString().slice(0, 16),
+    end: toInputTimestamp(reference?.end) || defaultEnd.toISOString().slice(0, 16),
+    stepSeconds: parseStepSeconds(reference?.step) ?? "30",
+  };
+};
+
+export function MetricsPanel({ initialReference, autoRun = false }: MetricsPanelProps = {}) {
   const metricState = useAsyncState();
-  const [metricQuery, setMetricQuery] = useState(() => ({
-    expression: "up",
-    start: new Date(Date.now() - 30 * 60 * 1000).toISOString().slice(0, 16),
-    end: new Date().toISOString().slice(0, 16),
-    stepSeconds: "30",
-  }));
+  const [metricQuery, setMetricQuery] = useState(() => deriveMetricQuery(initialReference));
   const [metricSeries, setMetricSeries] = useState<MetricSeries[]>([]);
+  const { start, succeed, fail } = metricState;
+  const autoRunRef = useRef(autoRun);
 
   const setRangeMinutes = (mins: number) => {
     const end = new Date();
@@ -45,28 +85,44 @@ export function MetricsPanel() {
     return d.toLocaleString(undefined, { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
   };
 
-  const runMetricQuery = async () => {
-    metricState.start();
+  const executeMetricQuery = useCallback(async (query: typeof metricQuery) => {
+    start();
     try {
+      const stepSeconds = Number(query.stepSeconds);
+      const resolvedStep = Number.isFinite(stepSeconds) && stepSeconds > 0 ? stepSeconds : 30;
       const payload = {
-        expression: metricQuery.expression,
-        start: new Date(metricQuery.start).toISOString(),
-        end: new Date(metricQuery.end).toISOString(),
-        step: Number(metricQuery.stepSeconds) * 1_000_000_000,
+        expression: query.expression,
+        start: new Date(query.start).toISOString(),
+        end: new Date(query.end).toISOString(),
+        step: resolvedStep * 1_000_000_000,
       };
       const res = await requestJSON<MetricSeries[]>("/metrics/query", {
         method: "POST",
         body: JSON.stringify(payload),
       });
       setMetricSeries(res);
-      metricState.succeed();
+      succeed();
     } catch (err) {
-      metricState.fail(err);
+      fail(err);
     }
+  }, [fail, setMetricSeries, start, succeed]);
+
+  const runMetricQuery = async () => {
+    await executeMetricQuery(metricQuery);
   };
+
+  useEffect(() => {
+    if (!autoRunRef.current) return;
+    autoRunRef.current = false;
+    const frame = requestAnimationFrame(() => {
+      void executeMetricQuery(metricQuery);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [executeMetricQuery, metricQuery]);
 
   return (
     <Section
+      id="metrics-panel"
       title="Metrics"
       description="Run time-series expressions and inspect stats quickly." 
       action={

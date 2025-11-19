@@ -12,10 +12,11 @@ test("useAsyncState exposes transitions and normalizes errors", async () => {
     };
     return [current, setState];
   };
+  const fakeUseMemo: typeof import("react").useMemo = (factory, _deps) => factory();
 
   const { useAsyncState } = await import("../app/lib/hooks.ts");
 
-  const asyncState = useAsyncState(fakeUseState);
+  const asyncState = useAsyncState({ stateHook: fakeUseState, memoHook: fakeUseMemo });
   assert.equal(asyncState.loading, false);
   assert.equal(asyncState.error, "");
 

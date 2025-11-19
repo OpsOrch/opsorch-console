@@ -6,8 +6,10 @@ import { usePathname } from "next/navigation";
 import { ReactNode, useMemo } from "react";
 
 const navItems = [
-  { href: "/", label: "Overview" },
+  { href: "/", label: "Home" },
   { href: "/incidents", label: "Incidents" },
+  { href: "/logs", label: "Logs" },
+  { href: "/metrics", label: "Metrics" },
   { href: "/tickets", label: "Tickets" },
   { href: "/services", label: "Services" },
   { href: "/settings", label: "Settings" },
@@ -41,10 +43,7 @@ export function AppShell({
 
           <nav className="grid gap-1">
             {navItems.map((item) => {
-              const active =
-                item.href === "/"
-                  ? activeHref === "/"
-                  : activeHref === item.href || activeHref.startsWith(`${item.href}/`);
+              const active = activeHref === item.href || activeHref.startsWith(`${item.href}/`);
               return (
                 <Link
                   key={item.href}

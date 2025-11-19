@@ -5,14 +5,16 @@ export function Section({
   description,
   children,
   action,
+  id,
 }: {
   title: string;
   description?: string;
   children: React.ReactNode;
   action?: React.ReactNode;
+  id?: string;
 }) {
   return (
-    <section className="rounded-2xl border border-zinc-200 bg-white/70 p-6 shadow-sm backdrop-blur">
+    <section id={id} className="rounded-2xl border border-zinc-200 bg-white/70 p-6 shadow-sm backdrop-blur">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-zinc-900">{title}</h2>

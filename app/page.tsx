@@ -18,8 +18,7 @@ export default function Home() {
 
   return (
     <AppShell
-      title="Overview"
-      description="Wire incident, log, metric, ticket, and messaging flows into one place."
+      title="OpsOrch Copilot"
       hero={hero}
     >
       <div className="grid grid-cols-1 gap-6">
