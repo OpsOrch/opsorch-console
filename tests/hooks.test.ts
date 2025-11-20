@@ -4,15 +4,15 @@ import type React from "react";
 
 test("useAsyncState exposes transitions and normalizes errors", async () => {
   const updates: unknown[] = [];
-  const fakeUseState: typeof import("react").useState = <S,>(initial: S | (() => S)) => {
+  const fakeUseState: typeof import("react").useState = <S,>(initial?: S | (() => S)) => {
     const current = typeof initial === "function" ? (initial as () => S)() : initial;
     const setState = (next: React.SetStateAction<S>) => {
-      const resolved = typeof next === "function" ? (next as (prev: S) => S)(current) : next;
+      const resolved = typeof next === "function" ? (next as (prev: S) => S)(current as S) : next;
       updates.push(resolved);
     };
-    return [current, setState];
+    return [current as S, setState] as [S, React.Dispatch<React.SetStateAction<S>>];
   };
-  const fakeUseMemo: typeof import("react").useMemo = (factory, _deps) => factory();
+  const fakeUseMemo: typeof import("react").useMemo = (factory) => factory();
 
   const { useAsyncState } = await import("../app/lib/hooks.ts");
 

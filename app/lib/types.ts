@@ -40,6 +40,12 @@ export type MetricSeries = {
   metadata?: Record<string, unknown>;
 };
 
+export type QueryScope = {
+  service?: string;
+  environment?: string;
+  team?: string;
+};
+
 export type Ticket = {
   id: string;
   key?: string;
@@ -78,16 +84,15 @@ export type MetricReference = {
   expression: string;
   start?: string;
   end?: string;
-  step?: string;
-  scope?: string;
+  step?: number;
+  scope?: QueryScope;
 };
 
 export type LogReference = {
   query: string;
   start?: string;
   end?: string;
-  service?: string;
-  scope?: string;
+  scope?: QueryScope;
 };
 
 export type CopilotReferences = {

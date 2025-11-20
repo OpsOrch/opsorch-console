@@ -1,38 +1,57 @@
 import assert from "node:assert";
 import test from "node:test";
-import { buildScopeFromIncident, buildScopeFromService } from "../app/lib/scope.ts";
-import type { Incident, Service } from "../app/lib/types.ts";
+import { parseScope, serializeScope, mergeScopes } from "../app/lib/scope.ts";
 
-const baseIncident: Incident = {
-  id: "inc-1",
-  title: "t",
-  status: "open",
-  severity: "sev3",
-  createdAt: new Date().toISOString(),
-  updatedAt: new Date().toISOString(),
-};
-
-test("buildScopeFromIncident prefers overrides", () => {
-  const inc: Incident = { ...baseIncident, service: "svc-a", fields: { environment: "prod" } };
-  const scope = buildScopeFromIncident(inc, { service: "svc-b", environment: "stg", team: "core" });
-  assert.deepEqual(scope, { service: "svc-b", environment: "stg", team: "core" });
+test("parseScope returns undefined for null/undefined/empty", () => {
+  assert.strictEqual(parseScope(null), undefined);
+  assert.strictEqual(parseScope(undefined), undefined);
+  assert.strictEqual(parseScope(""), undefined);
 });
 
-test("buildScopeFromIncident falls back to fields/metadata", () => {
-  const inc: Incident = { ...baseIncident, fields: { service: "svc-f", env: "dev" }, metadata: { team: "obs" } } as Incident;
-  const scope = buildScopeFromIncident(inc);
-  assert.deepEqual(scope, { service: "svc-f", environment: "dev", team: "obs" });
+test("parseScope parses valid JSON string", () => {
+  const input = JSON.stringify({ service: "foo" });
+  assert.deepStrictEqual(parseScope(input), { service: "foo" });
 });
 
-const baseService: Service = { id: "svc-1", name: "svc-1" };
-
-test("buildScopeFromService uses overrides first", () => {
-  const scope = buildScopeFromService(baseService, { service: "override", environment: "prod", team: "alpha" });
-  assert.deepEqual(scope, { service: "override", environment: "prod", team: "alpha" });
+test("parseScope returns undefined for invalid JSON string", () => {
+  assert.strictEqual(parseScope("{invalid"), undefined);
 });
 
-test("buildScopeFromService uses service tags when overrides missing", () => {
-  const svc: Service = { ...baseService, tags: { environment: "stg", team: "beta" } };
-  const scope = buildScopeFromService(svc);
-  assert.deepEqual(scope, { service: "svc-1", environment: "stg", team: "beta" });
+test("parseScope returns object if passed as object", () => {
+  const input = { service: "foo" };
+  assert.deepStrictEqual(parseScope(input), input);
+});
+
+test("parseScope returns undefined for object with no known keys", () => {
+  assert.strictEqual(parseScope({ foo: "bar" }), undefined);
+});
+
+test("parseScope returns object if at least one key is known", () => {
+  assert.deepStrictEqual(parseScope({ service: "foo", other: "bar" }), { service: "foo", other: "bar" });
+});
+
+test("serializeScope returns empty string for undefined", () => {
+  assert.strictEqual(serializeScope(undefined), "");
+});
+
+test("serializeScope serializes object", () => {
+  assert.strictEqual(serializeScope({ service: "foo" }), '{"service":"foo"}');
+});
+
+test("mergeScopes merges multiple scopes", () => {
+  const s1 = { service: "foo" };
+  const s2 = { environment: "prod" };
+  assert.deepStrictEqual(mergeScopes(s1, s2), { service: "foo", environment: "prod" });
+});
+
+test("mergeScopes overrides values from later scopes", () => {
+  const s1 = { service: "foo" };
+  const s2 = { service: "bar" };
+  assert.deepStrictEqual(mergeScopes(s1, s2), { service: "bar" });
+});
+
+test("mergeScopes handles undefined inputs", () => {
+  const s1 = { service: "foo" };
+  assert.deepStrictEqual(mergeScopes(s1, undefined), { service: "foo" });
+  assert.deepStrictEqual(mergeScopes(undefined, s1), { service: "foo" });
 });

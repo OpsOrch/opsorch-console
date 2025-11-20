@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CopilotAnswer, CopilotReferences, LogReference, MetricReference } from "@/app/lib/types";
+import { CopilotAnswer } from "@/app/lib/types";
 import { useAsyncState } from "@/app/lib/hooks";
-import { Field, Pill, Section, TextArea } from "@/app/lib/ui";
+import { Accordion, Badge, CodeBlock, Field, Pill, Section, TextArea } from "@/app/lib/ui";
+import { ConfidenceBar } from "@/app/components/copilot/ConfidenceBar";
+import { ReferenceLinks } from "@/app/components/copilot/ReferenceLinks";
+import { parseJsonString, stringifyData } from "@/app/lib/utils";
 
 type CopilotTurn = {
   id: string;
@@ -18,17 +21,6 @@ type CopilotContentItem = { type?: string; text?: string };
 
 function getChatId(candidate?: CopilotAnswer) {
   return candidate?.chatId;
-}
-
-function parseJsonString(text?: unknown) {
-  if (typeof text !== "string") return undefined;
-  const trimmed = text.trim();
-  if (!trimmed.startsWith("{") && !trimmed.startsWith("[")) return undefined;
-  try {
-    return JSON.parse(trimmed);
-  } catch {
-    return undefined;
-  }
 }
 
 function normalizeAnswer(payload: CopilotApiResponse): CopilotAnswer {
@@ -66,134 +58,8 @@ function normalizeAnswer(payload: CopilotApiResponse): CopilotAnswer {
   };
 }
 
-function buildMetricHref(reference: MetricReference) {
-  const params = new URLSearchParams();
-  if (reference.expression) params.set("expression", reference.expression);
-  if (reference.start) params.set("start", reference.start);
-  if (reference.end) params.set("end", reference.end);
-  if (reference.step) params.set("step", reference.step);
-  if (reference.scope) params.set("scope", reference.scope);
-  const query = params.toString();
-  return query ? `/metrics?${query}` : "/metrics";
-}
-
-function buildLogHref(reference: LogReference) {
-  const params = new URLSearchParams();
-  if (reference.query) params.set("query", reference.query);
-  if (reference.start) params.set("start", reference.start);
-  if (reference.end) params.set("end", reference.end);
-  if (reference.service) params.set("service", reference.service);
-  if (reference.scope) params.set("scope", reference.scope);
-  const query = params.toString();
-  return query ? `/logs?${query}` : "/logs";
-}
-
-function ReferenceLinks({
-  references,
-}: {
-  references?: CopilotReferences;
-}) {
-  if (!references) return null;
-  const { incidents, services, metrics, logs, tickets } = references;
-  if (!incidents?.length && !services?.length && !metrics?.length && !logs?.length && !tickets?.length) return null;
-
-  const renderList = (items: React.ReactNode[]) => (
-    <ul className="mt-1 flex flex-wrap gap-2 text-xs text-[#0f5f66]">
-      {items.map((node, idx) => (
-        <li key={idx}>{node}</li>
-      ))}
-    </ul>
-  );
-
-  return (
-    <div className="text-xs text-slate-700">
-      <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">References</p>
-      {incidents?.length ? renderList(incidents.map((id) => (
-        <a
-          key={`inc-${id}`}
-          href={`/incidents/${id}`}
-          className="inline-flex items-center gap-1 rounded-full border border-[#cfeff0] bg-[#f4fcfc] px-3 py-1 font-semibold text-[#0f5f66] hover:border-[#55cfd0] hover:text-[#0b2f33]"
-        >
-          Incident {id}
-        </a>
-      ))) : null}
-      {services?.length ? renderList(services.map((svc) => (
-        <a
-          key={`svc-${svc}`}
-          href={`/services`}
-          className="inline-flex items-center gap-1 rounded-full border border-[#e2e8f0] bg-white px-3 py-1 font-semibold text-[#0f5f66] hover:border-[#55cfd0] hover:text-[#0b2f33]"
-        >
-          Service {svc}
-        </a>
-      ))) : null}
-      {tickets?.length
-        ? renderList(
-            tickets.map((t) => {
-              const label = `Ticket ${t}`;
-              const href = t ? `/tickets?ticketId=${encodeURIComponent(t)}` : "/tickets";
-              return (
-                <a
-                  key={`ticket-${t}`}
-                  href={href}
-                  className="inline-flex items-center gap-1 rounded-full border border-[#cfeff0] bg-[#f4fcfc] px-3 py-1 text-xs font-semibold text-[#0f5f66] transition hover:border-[#55cfd0] hover:text-[#0b2f33]"
-                  title="Open in tickets"
-                >
-                  {label}
-                </a>
-              );
-            }),
-          )
-        : null}
-      {metrics?.length
-        ? renderList(
-            metrics.map((m, idx) => {
-              const content = `Metric ${m.expression}`;
-              const tooltip = `Window: ${m.start || "?"} → ${m.end || "?"}${m.scope ? ` scope=${m.scope}` : ""}`;
-              return (
-                <a
-                  key={`metric-${idx}`}
-                  href={buildMetricHref(m)}
-                  className="inline-flex items-center gap-1 rounded-full border border-[#cfeff0] bg-[#f4fcfc] px-3 py-1 text-xs font-semibold text-[#0f5f66] transition hover:border-[#55cfd0] hover:text-[#0b2f33]"
-                  title={`Open in metrics • ${tooltip}`}
-                >
-                  {content}
-                </a>
-              );
-            }),
-          )
-        : null}
-      {logs?.length
-        ? renderList(
-            logs.map((l, idx) => {
-              const content = `Logs ${l.query}`;
-              const tooltip = `Window: ${l.start || "?"} → ${l.end || "?"}${l.service ? ` svc=${l.service}` : ""}${l.scope ? ` scope=${l.scope}` : ""}`;
-              return (
-                <a
-                  key={`log-${idx}`}
-                  href={buildLogHref(l)}
-                  className="inline-flex items-center gap-1 rounded-full border border-[#cfeff0] bg-[#f4fcfc] px-3 py-1 text-xs font-semibold text-[#0f5f66] transition hover:border-[#55cfd0] hover:text-[#0b2f33]"
-                  title={`Open in logs • ${tooltip}`}
-                >
-                  {content}
-                </a>
-              );
-            }),
-          )
-        : null}
-    </div>
-  );
-}
-
 function makeId(role: CopilotTurn["role"]) {
   return `${Date.now()}-${role}-${Math.random().toString(36).slice(2, 7)}`;
-}
-
-function stringifyData(data: unknown) {
-  try {
-    return JSON.stringify(data, null, 2);
-  } catch (err) {
-    return `Unable to render data: ${err instanceof Error ? err.message : String(err)}`;
-  }
 }
 
 export function CopilotPanel() {
@@ -258,184 +124,223 @@ export function CopilotPanel() {
   return (
     <div className="relative">
       <Section
-      title="Copilot"
-      action={
-        <div className="flex items-center gap-3 text-xs">
-          <button
-            type="button"
-            onClick={() => {
-              setChatId(undefined);
-              setTurns([]);
-            }}
-            className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
-          >
-            Reset
-          </button>
-        </div>
-      }
-    >
-      <div ref={historyRef} className="grid max-h-[32rem] gap-3 overflow-y-auto pr-1">
-        {turns.length === 0 ? (
-          <p className="text-sm text-slate-600">Start typing to ask about incidents, logs, metrics, tickets, or messaging.</p>
-        ) : (
-          turns.map((turn) => {
-            const isUser = turn.role === "user";
-            const isCopilot = turn.role === "copilot";
-            const isError = turn.role === "error";
-            return (
-              <div key={turn.id} className={`flex ${isUser ? "justify-end" : "justify-start"}`}>
-                <div
-                  className={`flex max-w-full flex-col gap-2 rounded-2xl border px-3 py-2 shadow-sm sm:max-w-2xl ${
-                    isUser
-                      ? "border-[#c2f0f0] bg-[#e9fcfc]"
+        title="Copilot"
+        action={
+          <div className="flex items-center gap-3 text-xs">
+            <button
+              type="button"
+              onClick={() => {
+                setChatId(undefined);
+                setTurns([]);
+              }}
+              className="inline-flex h-9 items-center justify-center rounded-lg border border-slate-200 bg-white px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-600 transition hover:border-slate-300 hover:text-slate-800"
+            >
+              Reset
+            </button>
+          </div>
+        }
+      >
+        <div ref={historyRef} className="grid max-h-[32rem] gap-4 overflow-y-auto pr-1">
+          {turns.length === 0 ? (
+            <div className="rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-8 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-[#e9fcfc]">
+                <svg className="h-6 w-6 text-[#55cfd0]" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                </svg>
+              </div>
+              <p className="text-sm font-medium text-slate-700">Start a conversation</p>
+              <p className="mt-1 text-xs text-slate-500">Ask about incidents, logs, metrics, tickets, or services</p>
+            </div>
+          ) : (
+            turns.map((turn) => {
+              const isUser = turn.role === "user";
+              const isCopilot = turn.role === "copilot";
+              const isError = turn.role === "error";
+              return (
+                <div key={turn.id} className={`animate-fade-in flex ${isUser ? "justify-end" : "justify-start"}`}>
+                  <div
+                    className={`flex max-w-full flex-col gap-3 rounded-2xl border px-4 py-3 shadow-md transition-all hover:shadow-lg sm:max-w-2xl ${isUser
+                      ? "border-[#c2f0f0] bg-gradient-to-br from-[#e9fcfc] to-[#f4fcfc]"
                       : isCopilot
                         ? "border-slate-200 bg-white"
-                        : "border-rose-100 bg-rose-50"
-                  }`}
-                >
-                  <div className="flex items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-                    <span>{isUser ? "You" : isCopilot ? "Copilot" : "Error"}</span>
-                    {isCopilot && typeof turn.answer?.confidence === "number" ? (
-                      <Pill label={`Confidence ${(turn.answer.confidence * 100).toFixed(0)}%`} tone="default" />
+                        : "border-rose-200 bg-rose-50"
+                      }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-2">
+                        {isUser ? (
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-slate-600 to-slate-700 text-white shadow-sm">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                          </div>
+                        ) : isCopilot ? (
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-[#55cfd0] to-[#3fb8b8] text-white shadow-sm">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                            </svg>
+                          </div>
+                        ) : (
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-sm">
+                            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          </div>
+                        )}
+                        <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                          {isUser ? "You" : isCopilot ? "Copilot" : "Error"}
+                        </span>
+                      </div>
+                      {isCopilot && typeof turn.answer?.confidence === "number" ? (
+                        <ConfidenceBar confidence={turn.answer.confidence} />
+                      ) : null}
+                    </div>
+
+                    <div className={`rounded-xl px-3 py-2.5 ${isCopilot ? "bg-slate-50/50" : "bg-white/60"}`}>
+                      <p className="whitespace-pre-line text-sm leading-relaxed text-slate-900">{turn.answer?.conclusion || turn.text}</p>
+                    </div>
+
+                    {isError ? null : isCopilot && turn.answer ? (
+                      <Accordion title="View Details">
+                        <div className="space-y-4">
+                          {turn.answer.evidence?.length ? (
+                            <div>
+                              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Evidence</p>
+                              <div className="space-y-2">
+                                {turn.answer.evidence.map((item, idx) => {
+                                  const itemStr = typeof item === "string" ? item : stringifyData(item);
+                                  const parsed = parseJsonString(itemStr);
+                                  if (parsed) {
+                                    return <CodeBlock key={idx} code={stringifyData(parsed)} language="json" />;
+                                  }
+                                  return (
+                                    <div key={idx} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
+                                      <p className="break-words text-xs text-slate-700">{itemStr}</p>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {turn.answer.missing?.length ? (
+                            <div>
+                              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Missing Data</p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {turn.answer.missing.map((item, idx) => (
+                                  <Badge key={idx} label={item} variant="warning" size="xs" />
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {turn.answer.links?.length ? (
+                            <div>
+                              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">External Links</p>
+                              <ul className="space-y-1">
+                                {turn.answer.links.map((link) => (
+                                  <li key={`${link.label}-${link.url}`}>
+                                    <a
+                                      href={link.url}
+                                      className="group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 transition-all hover:border-[#55cfd0] hover:bg-[#f4fcfc] hover:text-[#0f5f66]"
+                                      target="_blank"
+                                      rel="noreferrer"
+                                    >
+                                      <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                      </svg>
+                                      <span className="truncate font-medium">{link.label}</span>
+                                    </a>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : null}
+
+                          <ReferenceLinks references={turn.answer.references} />
+
+                          {turn.answer.actions?.length ? (
+                            <div>
+                              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Suggested Actions</p>
+                              <div className="space-y-2">
+                                {turn.answer.actions.map((action, idx) => (
+                                  <div key={`${action.type}-${idx}`} className="rounded-lg border border-slate-200 bg-white p-3">
+                                    <div className="flex items-center justify-between gap-2">
+                                      <span className="text-sm font-semibold text-slate-800">{action.label}</span>
+                                      <Badge label={action.type} variant="info" size="xs" />
+                                    </div>
+                                    {action.payload ? (
+                                      <div className="mt-2">
+                                        <CodeBlock code={stringifyData(action.payload)} language="json" />
+                                      </div>
+                                    ) : null}
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null}
+
+                          {turn.answer.data ? (
+                            <div>
+                              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Raw Data</p>
+                              <CodeBlock code={stringifyData(turn.answer.data)} language="json" />
+                            </div>
+                          ) : null}
+
+                          <div>
+                            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Full Response</p>
+                            <CodeBlock code={stringifyData(turn.answer)} language="json" />
+                          </div>
+                        </div>
+                      </Accordion>
                     ) : null}
                   </div>
-
-                  <div className={`rounded-2xl px-3 py-2 ${isCopilot ? "bg-[#f6fbfb]" : "bg-white/80"}`}>
-                    <p className="text-sm text-slate-900 whitespace-pre-line">{turn.answer?.conclusion || turn.text}</p>
-                  </div>
-
-                  {isError ? null : isCopilot && turn.answer ? (
-                    <details className="group rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-800">
-                      <summary className="flex cursor-pointer items-center justify-between gap-2 text-[11px] font-semibold uppercase tracking-wide text-slate-600">
-                        View details
-                        <span className="text-[10px] text-slate-500 group-open:rotate-180">▼</span>
-                      </summary>
-                      <div className="mt-2 space-y-3">
-                        {turn.answer.evidence?.length ? (
-                          <div>
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Evidence</p>
-                            <ul className="mt-1 grid gap-1 text-xs text-slate-700">
-                              {turn.answer.evidence.map((item, idx) => (
-                                <li key={idx} className="rounded border border-slate-200 bg-white px-2 py-1">
-                                  {(() => {
-                                    if (typeof item === "string") {
-                                      const parsed = parseJsonString(item);
-                                      if (parsed) {
-                                        return (
-                                          <pre className="max-h-48 max-w-full overflow-auto whitespace-pre-wrap break-words text-[11px] text-slate-800">
-                                            {stringifyData(parsed)}
-                                          </pre>
-                                        );
-                                      }
-                                      return <span className="break-words">{item}</span>;
-                                    }
-                                    return (
-                                      <pre className="max-h-48 max-w-full overflow-auto whitespace-pre-wrap break-words text-[11px] text-slate-800">
-                                        {stringifyData(item)}
-                                      </pre>
-                                    );
-                                  })()}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
-
-                        {turn.answer.missing?.length ? (
-                          <div className="text-xs text-slate-700">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Missing</p>
-                            <p>{turn.answer.missing.join(", ")}</p>
-                          </div>
-                        ) : null}
-
-                        {turn.answer.links?.length ? (
-                          <div className="text-xs text-slate-700">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Links</p>
-                            <ul className="mt-1 grid gap-1">
-                              {turn.answer.links.map((link) => (
-                                <li key={`${link.label}-${link.url}`} className="truncate">
-                                  <a href={link.url} className="text-[#0f5f66] hover:underline" target="_blank" rel="noreferrer">
-                                    {link.label}
-                                  </a>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
-
-                        <ReferenceLinks references={turn.answer.references} />
-
-                        {turn.answer.actions?.length ? (
-                          <div className="text-xs text-slate-700">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Actions</p>
-                            <ul className="mt-1 grid gap-1">
-                              {turn.answer.actions.map((action, idx) => (
-                                <li key={`${action.type}-${idx}`} className="rounded border border-slate-200 bg-white px-2 py-1">
-                                  <div className="flex items-center justify-between gap-2">
-                                    <span className="font-semibold text-slate-800">{action.label}</span>
-                                    <span className="rounded bg-slate-200 px-2 py-0.5 text-[10px] font-semibold uppercase text-slate-600">
-                                      {action.type}
-                                    </span>
-                                  </div>
-                                  {action.payload ? (
-                                    <pre className="mt-1 max-h-48 max-w-full overflow-auto whitespace-pre-wrap break-words rounded bg-slate-50 px-2 py-1 text-[11px] text-slate-700">
-                                      {stringifyData(action.payload)}
-                                    </pre>
-                                  ) : null}
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        ) : null}
-
-                        {turn.answer.data ? (
-                          <div className="text-xs text-slate-700">
-                            <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Raw data</p>
-                            <pre className="mt-1 max-h-[28rem] max-w-full overflow-auto whitespace-pre-wrap break-words rounded border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-800">
-                              {stringifyData(turn.answer.data)}
-                            </pre>
-                          </div>
-                        ) : null}
-
-                        <div className="text-xs text-slate-700">
-                          <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">Full copilot answer</p>
-                          <pre className="mt-1 max-h-[28rem] max-w-full overflow-auto whitespace-pre-wrap break-words rounded border border-slate-200 bg-white px-3 py-2 text-[11px] text-slate-800">
-                            {stringifyData(turn.answer)}
-                          </pre>
-                        </div>
-                      </div>
-                    </details>
-                  ) : null}
+                </div>
+              );
+            })
+          )}
+          {state.loading && (
+            <div className="order-last animate-fade-in flex items-center gap-3 self-start">
+              <div className="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-teal-50 to-sky-50">
+                <svg className="h-5 w-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+              </div>
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-600">Copilot is thinking</span>
+                <div className="flex gap-1">
+                  <div className="h-2 w-2 animate-pulse rounded-full bg-teal-500" style={{ animationDelay: "0ms" }} />
+                  <div className="h-2 w-2 animate-pulse rounded-full bg-teal-500" style={{ animationDelay: "150ms" }} />
+                  <div className="h-2 w-2 animate-pulse rounded-full bg-teal-500" style={{ animationDelay: "300ms" }} />
                 </div>
               </div>
-            );
-          })
-        )}
-      </div>
-
-      <div className="mt-4 space-y-3">
-        <Field
-          label="Ask a question"
-          input={
-            <TextArea
-              value={question}
-              onChange={setQuestion}
-              placeholder={questionPlaceholder}
-            />
-          }
-        />
-        <div className="flex flex-wrap items-center gap-3">
-          <button
-            type="button"
-            onClick={ask}
-            disabled={!canAsk}
-            className="rounded-lg bg-[#55cfd0] px-4 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8] disabled:cursor-not-allowed disabled:bg-[#b7eded]"
-          >
-            {state.loading ? "Asking Copilot..." : "Ask Copilot"}
-          </button>
-          {state.error ? <Pill label={state.error} tone="error" /> : null}
+            </div>
+          )}
         </div>
-      </div>
+
+        <div className="mt-4 space-y-3">
+          <Field
+            label="Ask a question"
+            input={
+              <TextArea
+                value={question}
+                onChange={setQuestion}
+                placeholder={questionPlaceholder}
+              />
+            }
+          />
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={ask}
+              disabled={!canAsk}
+              className="rounded-lg bg-[#55cfd0] px-4 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8] disabled:cursor-not-allowed disabled:bg-[#b7eded]"
+            >
+              {state.loading ? "Asking Copilot..." : "Ask Copilot"}
+            </button>
+            {state.error ? <Pill label={state.error} tone="error" /> : null}
+          </div>
+        </div>
       </Section>
       {showSessionStamp ? (
         <span

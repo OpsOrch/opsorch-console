@@ -2,11 +2,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAsyncState } from "@/app/lib/hooks";
 import { requestJSON } from "@/app/lib/api";
 import { LogEntry, LogReference } from "@/app/lib/types";
-import { Field, Pill, Section, TextInput } from "@/app/lib/ui";
+import { CodeBlock, Field, Pill, Section, TextInput } from "@/app/lib/ui";
 import { formatDate } from "@/app/lib/utils";
+
 type LogsPanelProps = {
   initialReference?: LogReference;
   autoRun?: boolean;
+  readOnly?: boolean;
 };
 
 const parseJsonMessage = (value: string) => {
@@ -32,31 +34,29 @@ const formatJson = (value: unknown) => {
 
 const renderLogMessage = (message: LogEntry["message"]) => {
   if (message === null || message === undefined) {
-    return <p className="mt-1 whitespace-pre-wrap text-slate-500">No message</p>;
+    return <p className="mt-1 text-xs text-slate-500">No message</p>;
   }
 
   if (typeof message === "string") {
     const parsed = parseJsonMessage(message);
     if (parsed !== null) {
-      return (
-        <pre className="mt-1 whitespace-pre-wrap rounded border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-800">
-          {formatJson(parsed)}
-        </pre>
-      );
+      return <div className="mt-2"><CodeBlock code={formatJson(parsed)} language="json" /></div>;
     }
-
-    return <p className="mt-1 whitespace-pre-wrap text-slate-800">{message}</p>;
+    return <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{message}</p>;
   }
 
   if (typeof message === "object") {
-    return (
-      <pre className="mt-1 whitespace-pre-wrap rounded border border-slate-200 bg-slate-50 px-3 py-2 font-mono text-[11px] text-slate-800">
-        {formatJson(message)}
-      </pre>
-    );
+    return <div className="mt-2"><CodeBlock code={formatJson(message)} language="json" /></div>;
   }
 
-  return <p className="mt-1 whitespace-pre-wrap text-slate-800">{String(message)}</p>;
+  return <p className="mt-1 whitespace-pre-wrap text-sm text-slate-800">{String(message)}</p>;
+};
+
+const getSeverityColor = (severity?: string) => {
+  const sev = (severity || "info").toLowerCase();
+  if (sev.includes("error") || sev.includes("fatal") || sev.includes("critical")) return "rose";
+  if (sev.includes("warn")) return "amber";
+  return "sky";
 };
 
 const toInputTimestamp = (value?: string) => {
@@ -74,15 +74,18 @@ const deriveLogQuery = (reference?: LogReference) => {
     start: toInputTimestamp(reference?.start) || defaultStart.toISOString().slice(0, 16),
     end: toInputTimestamp(reference?.end) || defaultEnd.toISOString().slice(0, 16),
     limit: "100",
+    scope: reference?.scope,
   };
 };
 
-export function LogsPanel({ initialReference, autoRun = false }: LogsPanelProps = {}) {
+export function LogsPanel({ initialReference, autoRun = false, readOnly = false }: LogsPanelProps = {}) {
   const logState = useAsyncState();
   const [logQuery, setLogQuery] = useState(() => deriveLogQuery(initialReference));
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const { start, succeed, fail } = logState;
   const autoRunRef = useRef(autoRun);
+
+
 
   const setRangeMinutes = (mins: number) => {
     const end = new Date();
@@ -97,6 +100,7 @@ export function LogsPanel({ initialReference, autoRun = false }: LogsPanelProps 
         query: query.query,
         start: new Date(query.start).toISOString(),
         end: new Date(query.end).toISOString(),
+        scope: query.scope,
       };
       const limitVal = Number(query.limit);
       if (!Number.isNaN(limitVal) && query.limit) {
@@ -112,6 +116,21 @@ export function LogsPanel({ initialReference, autoRun = false }: LogsPanelProps 
       fail(err);
     }
   }, [fail, setLogs, start, succeed]);
+
+  const [prevInitialReference, setPrevInitialReference] = useState(initialReference);
+  if (initialReference !== prevInitialReference) {
+    setPrevInitialReference(initialReference);
+    setLogQuery(deriveLogQuery(initialReference));
+  }
+
+  useEffect(() => {
+    if (initialReference && autoRun) {
+      const timer = setTimeout(() => {
+        void executeLogQuery(deriveLogQuery(initialReference));
+      }, 0);
+      return () => clearTimeout(timer);
+    }
+  }, [initialReference, executeLogQuery, autoRun]);
 
   const runLogQuery = async () => {
     await executeLogQuery(logQuery);
@@ -130,96 +149,142 @@ export function LogsPanel({ initialReference, autoRun = false }: LogsPanelProps 
     <Section
       id="logs-panel"
       title="Logs"
-      description="Run log searches over the connected source." 
+      description="Run log searches over the connected source."
       action={
-        <button
-          type="button"
-          onClick={runLogQuery}
-          className="rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-medium text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0]"
-        >
-          Run query
-        </button>
+        !readOnly ? (
+          <button
+            type="button"
+            onClick={runLogQuery}
+            className="rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-medium text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0]"
+          >
+            Run query
+          </button>
+        ) : null
       }
     >
-      <Field
-        label="Query"
-        input={
-          <TextInput
-            value={logQuery.query}
-            onChange={(v) => setLogQuery((q) => ({ ...q, query: v }))}
-            placeholder="level:error"
+      {!readOnly && (
+        <>
+          <Field
+            label="Query"
+            input={
+              <TextInput
+                value={logQuery.query}
+                onChange={(v) => setLogQuery((q) => ({ ...q, query: v }))}
+                placeholder="level:error"
+              />
+            }
           />
-        }
-      />
-      <div className="grid grid-cols-2 gap-3">
-        <Field
-          label="Start"
-          input={
-            <TextInput
-              type="datetime-local"
-              value={logQuery.start}
-              onChange={(v) => setLogQuery((q) => ({ ...q, start: v }))}
+          <div className="grid grid-cols-2 gap-3">
+            <Field
+              label="Start"
+              input={
+                <TextInput
+                  type="datetime-local"
+                  value={logQuery.start}
+                  onChange={(v) => setLogQuery((q) => ({ ...q, start: v }))}
+                />
+              }
             />
-          }
-        />
-        <Field
-          label="End"
-          input={
-            <TextInput
-              type="datetime-local"
-              value={logQuery.end}
-              onChange={(v) => setLogQuery((q) => ({ ...q, end: v }))}
+            <Field
+              label="End"
+              input={
+                <TextInput
+                  type="datetime-local"
+                  value={logQuery.end}
+                  onChange={(v) => setLogQuery((q) => ({ ...q, end: v }))}
+                />
+              }
             />
-          }
-        />
-      </div>
-      <div className="flex flex-wrap gap-2 text-[11px] text-[#1c3134]">
-        <span className="font-semibold">Quick ranges:</span>
-        {[15, 60, 360].map((m) => (
-          <button
-            key={m}
-            type="button"
-            onClick={() => setRangeMinutes(m)}
-            className="rounded-full border border-[#8fdede] bg-white px-2 py-1 transition hover:border-[#55cfd0]"
-          >
-            last {m >= 60 ? `${m / 60}h` : `${m}m`}
-          </button>
-        ))}
-      </div>
-      <Field
-        label="Limit"
-        input={
-          <TextInput
-            value={logQuery.limit}
-            onChange={(v) => setLogQuery((q) => ({ ...q, limit: v }))}
-            placeholder="100"
-            type="number"
+          </div>
+          <div className="flex flex-wrap gap-2 text-[11px] text-[#1c3134]">
+            <span className="font-semibold">Quick ranges:</span>
+            {[15, 60, 360].map((m) => (
+              <button
+                key={m}
+                type="button"
+                onClick={() => setRangeMinutes(m)}
+                className="rounded-full border border-[#8fdede] bg-white px-2 py-1 transition hover:border-[#55cfd0]"
+              >
+                last {m >= 60 ? `${m / 60}h` : `${m}m`}
+              </button>
+            ))}
+          </div>
+          <Field
+            label="Limit"
+            input={
+              <TextInput
+                value={logQuery.limit}
+                onChange={(v) => setLogQuery((q) => ({ ...q, limit: v }))}
+                placeholder="100"
+                type="number"
+              />
+            }
           />
-        }
-      />
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={runLogQuery}
-          className="rounded-lg bg-[#55cfd0] px-4 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
-        >
-          {logState.loading ? "Querying..." : "Query logs"}
-        </button>
-        {logState.error ? <Pill label={logState.error} tone="error" /> : null}
-      </div>
-      <div className="flex max-h-72 flex-col gap-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs">
-        {logs.length === 0 ? (
-          <p className="text-slate-500">No log results yet.</p>
-        ) : (
-          logs.map((entry, idx) => (
-            <div key={`${entry.timestamp}-${idx}`} className="rounded-lg border border-slate-200 bg-white/80 px-3 py-2">
-              <div className="flex items-center justify-between gap-2">
-                <span className="font-semibold text-slate-900">{entry.severity || "info"}</span>
-                <span className="text-[11px] text-slate-500">{formatDate(entry.timestamp)}</span>
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              type="button"
+              onClick={runLogQuery}
+              className="rounded-lg bg-[#55cfd0] px-4 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
+            >
+              {logState.loading ? "Querying..." : "Query logs"}
+            </button>
+            {logState.error ? <Pill label={logState.error} tone="error" /> : null}
+          </div>
+        </>
+      )}
+      <div className="flex max-h-72 flex-col gap-3 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
+        {logState.loading && logs.length === 0 ? (
+          <div className="animate-fade-in space-y-3">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-4 py-3">
+                <div className="flex items-center justify-between gap-2">
+                  <div className="h-4 w-16 rounded bg-slate-200" />
+                  <div className="h-3 w-32 rounded bg-slate-200" />
+                </div>
+                <div className="mt-2 h-3 w-3/4 rounded bg-slate-200" />
+                <div className="mt-1 h-3 w-1/2 rounded bg-slate-200" />
               </div>
-              {renderLogMessage(entry.message)}
+            ))}
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="animate-fade-in rounded-xl border-2 border-dashed border-slate-200 bg-white px-6 py-8 text-center">
+            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
+              <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
             </div>
-          ))
+            <p className="text-sm font-medium text-slate-700">No log results</p>
+            <p className="mt-1 text-xs text-slate-500">Run a query to see logs</p>
+          </div>
+        ) : (
+          logs.map((entry, idx) => {
+            const severityColor = getSeverityColor(entry.severity);
+            const colorClasses = {
+              rose: "border-rose-200 bg-rose-50",
+              amber: "border-amber-200 bg-amber-50",
+              sky: "border-sky-200 bg-sky-50",
+            };
+            const textClasses = {
+              rose: "text-rose-700",
+              amber: "text-amber-700",
+              sky: "text-sky-700",
+            };
+            return (
+              <div key={`${entry.timestamp}-${idx}`} className="animate-fade-in rounded-lg border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md">
+                <div className={`rounded-t-lg border-b px-4 py-2 ${colorClasses[severityColor]}`}>
+                  <div className="flex items-center justify-between gap-2">
+                    <span className={`text-sm font-semibold uppercase ${textClasses[severityColor]}`}>
+                      {entry.severity || "info"}
+                    </span>
+                    <span className="text-xs text-slate-600">{formatDate(entry.timestamp)}</span>
+                  </div>
+                </div>
+                <div className="px-4 py-3">
+                  {renderLogMessage(entry.message)}
+                </div>
+              </div>
+            );
+          })
         )}
       </div>
     </Section>

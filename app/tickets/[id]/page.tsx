@@ -6,18 +6,14 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/app/components/AppShell";
 import { requestJSON } from "@/app/lib/api";
 import { queryIncidents } from "@/app/lib/incidents";
-import { queryLogs } from "@/app/lib/logs";
-import { queryMetrics } from "@/app/lib/metrics";
 import { buildScopeFromTicket } from "@/app/lib/scope";
 import { fetchTicket } from "@/app/lib/tickets";
-import { Incident, LogEntry, MetricSeries, Ticket } from "@/app/lib/types";
+import { Incident, Ticket } from "@/app/lib/types";
 import { Field, Pill, Select } from "@/app/lib/ui";
 import { formatDate } from "@/app/lib/utils";
 
 const tabOrder = [
   { key: "incidents", label: "Incidents" },
-  { key: "logs", label: "Logs" },
-  { key: "metrics", label: "Metrics" },
 ] as const;
 
 const ticketStatusOptions = [
@@ -34,11 +30,7 @@ type ErrorMap = Record<string, string>;
 
 const isNotFound = (err: unknown) => err instanceof Error && /404|not found/i.test(err.message);
 
-const lastHourRange = () => {
-  const end = new Date();
-  const start = new Date(end.getTime() - 60 * 60 * 1000);
-  return { start: start.toISOString(), end: end.toISOString() };
-};
+
 
 const formatJson = (value: unknown) => {
   try {
@@ -48,28 +40,9 @@ const formatJson = (value: unknown) => {
   }
 };
 
-const renderLogMessage = (message: LogEntry["message"]) => {
-  if (message === null || message === undefined) return <p className="text-xs text-slate-500">No message</p>;
-  if (typeof message === "string") return <p className="whitespace-pre-wrap text-sm text-slate-800">{message}</p>;
-  if (typeof message === "object") {
-    return (
-      <pre className="whitespace-pre-wrap rounded border border-slate-200 bg-slate-50 px-2 py-1 text-[11px] text-slate-800">
-        {formatJson(message)}
-      </pre>
-    );
-  }
-  return <p className="whitespace-pre-wrap text-sm text-slate-800">{String(message)}</p>;
-};
 
-const summarizeSeries = (series: MetricSeries) => {
-  if (!series.points.length) return { latest: null, min: null, max: null, avg: null } as const;
-  const values = series.points.map((p) => p.value);
-  const latest = series.points[series.points.length - 1];
-  const min = Math.min(...values);
-  const max = Math.max(...values);
-  const avg = values.reduce((a, b) => a + b, 0) / values.length;
-  return { latest, min, max, avg } as const;
-};
+
+
 
 export default function TicketDetailPage() {
   const params = useParams<{ id?: string }>();
@@ -82,8 +55,6 @@ export default function TicketDetailPage() {
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [statusUpdate, setStatusUpdate] = useState("");
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [logEntries, setLogEntries] = useState<LogEntry[]>([]);
-  const [metricSeries, setMetricSeries] = useState<MetricSeries[]>([]);
   const [loading, setLoading] = useState<LoadingMap>({});
   const [errors, setErrors] = useState<ErrorMap>({});
 
@@ -126,52 +97,7 @@ export default function TicketDetailPage() {
     });
   }, [scope, ticketId]);
 
-  const loadLogs = useCallback(async () => {
-    if (!ticketId) return;
-    await withState("logs", async () => {
-      try {
-        const { start, end } = lastHourRange();
-        const res = await queryLogs({
-          query: scope.service ? `service:${scope.service}` : undefined,
-          start,
-          end,
-          limit: 200,
-          scope: Object.keys(scope).length ? scope : undefined,
-        });
-        setLogEntries(res as LogEntry[]);
-      } catch (err) {
-        if (isNotFound(err)) {
-          setLogEntries([]);
-          return;
-        }
-        throw err;
-      }
-    });
-  }, [scope, ticketId]);
 
-  const loadMetrics = useCallback(async () => {
-    if (!ticketId) return;
-    await withState("metrics", async () => {
-      try {
-        const { start, end } = lastHourRange();
-        const expression = scope.service ? `service="${scope.service}"` : "up";
-        const res = await queryMetrics({
-          expression,
-          start,
-          end,
-          step: 60 * 1_000_000_000,
-          scope: Object.keys(scope).length ? scope : undefined,
-        });
-        setMetricSeries(res as MetricSeries[]);
-      } catch (err) {
-        if (isNotFound(err)) {
-          setMetricSeries([]);
-          return;
-        }
-        throw err;
-      }
-    });
-  }, [scope, ticketId]);
 
   const updateStatus = async () => {
     if (!ticketId || !statusUpdate) return;
@@ -196,9 +122,7 @@ export default function TicketDetailPage() {
 
   useEffect(() => {
     if (activeTab === "incidents") loadIncidents();
-    if (activeTab === "logs") loadLogs();
-    if (activeTab === "metrics") loadMetrics();
-  }, [activeTab, loadIncidents, loadLogs, loadMetrics]);
+  }, [activeTab, loadIncidents]);
 
   const hero = ticket ? (
     <div className="flex items-center gap-3">
@@ -236,8 +160,6 @@ export default function TicketDetailPage() {
               onClick={() => {
                 loadTicket();
                 if (activeTab === "incidents") loadIncidents();
-                if (activeTab === "logs") loadLogs();
-                if (activeTab === "metrics") loadMetrics();
               }}
               className="rounded-lg border border-[#8fdede] bg-white px-3 py-1 font-semibold text-[#0f1a1d] transition hover:border-[#55cfd0]"
             >
@@ -309,9 +231,8 @@ export default function TicketDetailPage() {
               key={tab.key}
               type="button"
               onClick={() => setActiveTab(tab.key)}
-              className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
-                activeTab === tab.key ? "bg-[#55cfd0] text-[#0b1517] shadow" : "text-slate-600 hover:bg-slate-100"
-              }`}
+              className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${activeTab === tab.key ? "bg-[#55cfd0] text-[#0b1517] shadow" : "text-slate-600 hover:bg-slate-100"
+                }`}
             >
               {tab.label}
             </button>
@@ -348,99 +269,6 @@ export default function TicketDetailPage() {
                     <p className="text-[11px] text-slate-500">Updated {formatDate(inc.updatedAt)}</p>
                   </button>
                 ))
-              )}
-            </div>
-          </div>
-        ) : null}
-
-        {activeTab === "logs" ? (
-          <div className="grid gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">Logs related to this ticket scope</h2>
-              <button
-                type="button"
-                onClick={loadLogs}
-                className="rounded-lg border border-[#8fdede] bg-white px-3 py-1 text-xs font-semibold text-[#0f1a1d] transition hover:border-[#55cfd0]"
-              >
-                {loading.logs ? "Loading..." : "Refresh"}
-              </button>
-            </div>
-            {errors.logs ? <Pill label={errors.logs} tone="error" /> : null}
-            <div className="flex max-h-80 flex-col gap-2 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-              {logEntries.length === 0 ? (
-                <p className="text-slate-500">No logs returned for this ticket (404 treated as empty).</p>
-              ) : (
-                logEntries.map((entry, idx) => (
-                  <div key={`${entry.timestamp}-${idx}`} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-semibold text-slate-900">{entry.severity || "info"}</span>
-                      <span className="text-[11px] text-slate-500">{formatDate(entry.timestamp)}</span>
-                    </div>
-                    {renderLogMessage(entry.message)}
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        ) : null}
-
-        {activeTab === "metrics" ? (
-          <div className="grid gap-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-slate-900">Metrics related to this ticket</h2>
-              <button
-                type="button"
-                onClick={loadMetrics}
-                className="rounded-lg border border-[#8fdede] bg-white px-3 py-1 text-xs font-semibold text-[#0f1a1d] transition hover:border-[#55cfd0]"
-              >
-                {loading.metrics ? "Loading..." : "Refresh"}
-              </button>
-            </div>
-            {errors.metrics ? <Pill label={errors.metrics} tone="error" /> : null}
-            <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm">
-              {metricSeries.length === 0 ? (
-                <p className="text-slate-500">No metric series returned (404 treated as empty).</p>
-              ) : (
-                metricSeries.map((series) => {
-                  const stats = summarizeSeries(series);
-                  const maxVal = Math.max(...series.points.map((p) => p.value), 1);
-                  return (
-                    <div key={series.name} className="rounded-lg border border-slate-200 bg-white px-3 py-3">
-                      <div className="flex items-center justify-between">
-                        <span className="text-sm font-semibold text-slate-900">{series.name}</span>
-                        <Pill label={`${series.points.length} points`} />
-                      </div>
-                      <div className="mt-2 grid grid-cols-4 gap-2 text-[11px] text-slate-600">
-                        <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1">
-                          <p className="text-[10px] uppercase tracking-wide text-slate-500">Latest</p>
-                          <p className="text-sm font-semibold text-slate-900">{stats.latest ? stats.latest.value.toFixed(2) : "-"}</p>
-                        </div>
-                        <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1">
-                          <p className="text-[10px] uppercase tracking-wide text-slate-500">Min</p>
-                          <p className="text-sm font-semibold text-slate-900">{stats.min !== null ? stats.min.toFixed(2) : "-"}</p>
-                        </div>
-                        <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1">
-                          <p className="text-[10px] uppercase tracking-wide text-slate-500">Max</p>
-                          <p className="text-sm font-semibold text-slate-900">{stats.max !== null ? stats.max.toFixed(2) : "-"}</p>
-                        </div>
-                        <div className="rounded-lg border border-slate-100 bg-slate-50 px-2 py-1">
-                          <p className="text-[10px] uppercase tracking-wide text-slate-500">Avg</p>
-                          <p className="text-sm font-semibold text-slate-900">{stats.avg !== null ? stats.avg.toFixed(2) : "-"}</p>
-                        </div>
-                      </div>
-                      <div className="mt-3 flex items-end gap-1 overflow-x-auto">
-                        {series.points.slice(-50).map((pt, idx) => (
-                          <div
-                            key={idx}
-                            className="h-20 w-1.5 rounded-full bg-[#8fdede]"
-                            style={{ height: `${(pt.value / maxVal) * 100 || 1}%` }}
-                            title={`${pt.value} at ${formatDate(pt.timestamp)}`}
-                          />
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })
               )}
             </div>
           </div>
