@@ -2,9 +2,9 @@ import React from "react";
 import { CopilotReferences } from "@/app/lib/types";
 
 // Helper functions for building reference URLs
-import { Scope } from "@/app/lib/types";
+import { QueryScope } from "@/app/lib/types";
 
-function buildMetricHref(m: { expression: string; start?: string; end?: string; scope?: Scope }) {
+function buildMetricHref(m: { expression: string; start?: string; end?: string; scope?: QueryScope }) {
     const params = new URLSearchParams();
     params.set("expression", m.expression);
     if (m.start) params.set("start", m.start);
@@ -14,7 +14,7 @@ function buildMetricHref(m: { expression: string; start?: string; end?: string; 
     return query ? `/metrics?${query}` : "/metrics";
 }
 
-function buildLogHref(l: { query: string; start?: string; end?: string; service?: string; scope?: Scope }) {
+function buildLogHref(l: { query: string; start?: string; end?: string; service?: string; scope?: QueryScope }) {
     const params = new URLSearchParams();
     params.set("query", l.query);
     if (l.start) params.set("start", l.start);

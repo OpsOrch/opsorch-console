@@ -1,6 +1,5 @@
 import { requestJSON } from "@/app/lib/api";
-import { Incident, TimelineEntry } from "@/app/lib/types";
-import { QueryScope } from "@/app/lib/scope";
+import { Incident, TimelineEntry, QueryScope } from "@/app/lib/types";
 
 export async function fetchIncident(id: string) {
   return requestJSON<Incident>(`/incidents/${id}`);

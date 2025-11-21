@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CopilotAnswer } from "@/app/lib/types";
+import { useRouter, usePathname } from "next/navigation";
+import { CopilotAnswer, CopilotReferences } from "@/app/lib/types";
 import { useAsyncState } from "@/app/lib/hooks";
 import { Accordion, Badge, CodeBlock, Field, Pill, Section, TextArea } from "@/app/lib/ui";
 import { ConfidenceBar } from "@/app/components/copilot/ConfidenceBar";
@@ -45,13 +46,16 @@ function normalizeAnswer(payload: CopilotApiResponse): CopilotAnswer {
 
   const derivedChatId = getChatId(answer) || getChatId(payload);
 
+  const derivedReferences =
+    answer.references ||
+    (derivedData && typeof derivedData === "object" && (derivedData as { references?: CopilotReferences }).references);
+
   return {
     conclusion: derivedConclusion,
     evidence: answer.evidence,
     missing: answer.missing,
     actions: answer.actions,
-    links: answer.links,
-    references: answer.references,
+    references: derivedReferences,
     data: derivedData,
     confidence: answer.confidence,
     chatId: derivedChatId,
@@ -62,9 +66,11 @@ function makeId(role: CopilotTurn["role"]) {
   return `${Date.now()}-${role}-${Math.random().toString(36).slice(2, 7)}`;
 }
 
-export function CopilotPanel() {
+export function CopilotPanel({ initialChatId }: { initialChatId?: string }) {
+  const router = useRouter();
+  const pathname = usePathname();
   const [question, setQuestion] = useState("");
-  const [chatId, setChatId] = useState<string | undefined>();
+  const [chatId, setChatId] = useState<string | undefined>(initialChatId);
   const [turns, setTurns] = useState<CopilotTurn[]>([]);
   const state = useAsyncState();
   const historyRef = useRef<HTMLDivElement | null>(null);
@@ -103,7 +109,9 @@ export function CopilotPanel() {
       const data = (await res.json()) as CopilotApiResponse;
       const answer = normalizeAnswer(data);
       const conclusionText = answer.conclusion || "No conclusion returned.";
-      setChatId((prev) => (answer.chatId ? answer.chatId : prev));
+
+      const newChatId = answer.chatId;
+      setChatId((prev) => (newChatId ? newChatId : prev));
       setTurns((prev) => [...prev, { id: makeId("copilot"), role: "copilot", text: conclusionText, answer: { ...answer, conclusion: conclusionText } }]);
       state.succeed();
     } catch (err) {
@@ -112,6 +120,59 @@ export function CopilotPanel() {
       state.fail(err);
     }
   };
+
+  const loadChat = async (id: string) => {
+    state.start();
+    try {
+      const res = await fetch(`/api/copilot/chats/${id}`);
+      if (!res.ok) {
+        throw new Error(res.statusText);
+      }
+      const data = await res.json();
+      const conversation = data.conversation;
+
+      if (!conversation) {
+        throw new Error("Conversation not found");
+      }
+
+      const mappedTurns: CopilotTurn[] = [];
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      conversation.turns.forEach((t: any) => {
+        mappedTurns.push({
+          id: makeId("user"),
+          role: "user",
+          text: t.userMessage,
+        });
+
+        if (t.assistantResponse) {
+          mappedTurns.push({
+            id: makeId("copilot"),
+            role: "copilot",
+            text: t.assistantResponse,
+            answer: {
+              conclusion: t.assistantResponse,
+              chatId: conversation.chatId,
+              // Map tool results to data so they can be inspected if needed
+              data: t.toolResults,
+            },
+          });
+        }
+      });
+
+      setChatId(conversation.chatId);
+      setTurns(mappedTurns);
+      state.succeed();
+    } catch (err) {
+      state.fail(err);
+    }
+  };
+
+  useEffect(() => {
+    if (initialChatId) {
+      loadChat(initialChatId);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialChatId]);
 
   useEffect(() => {
     if (historyRef.current) {
@@ -231,29 +292,6 @@ export function CopilotPanel() {
                                   <Badge key={idx} label={item} variant="warning" size="xs" />
                                 ))}
                               </div>
-                            </div>
-                          ) : null}
-
-                          {turn.answer.links?.length ? (
-                            <div>
-                              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">External Links</p>
-                              <ul className="space-y-1">
-                                {turn.answer.links.map((link) => (
-                                  <li key={`${link.label}-${link.url}`}>
-                                    <a
-                                      href={link.url}
-                                      className="group flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs text-slate-700 transition-all hover:border-[#55cfd0] hover:bg-[#f4fcfc] hover:text-[#0f5f66]"
-                                      target="_blank"
-                                      rel="noreferrer"
-                                    >
-                                      <svg className="h-3.5 w-3.5 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                                      </svg>
-                                      <span className="truncate font-medium">{link.label}</span>
-                                    </a>
-                                  </li>
-                                ))}
-                              </ul>
                             </div>
                           ) : null}
 

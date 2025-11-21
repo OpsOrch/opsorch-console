@@ -1,6 +1,5 @@
 import { requestJSON } from "@/app/lib/api";
-import { MetricSeries } from "@/app/lib/types";
-import { QueryScope } from "@/app/lib/scope";
+import { MetricSeries, QueryScope } from "@/app/lib/types";
 
 export type MetricQueryInput = {
   expression: string;

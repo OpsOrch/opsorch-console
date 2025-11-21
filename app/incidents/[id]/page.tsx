@@ -293,7 +293,7 @@ export default function IncidentDetailPage() {
         ) : null}
 
         {activeTab === "tickets" ? (
-          <TicketsPanel readOnly={true} initialScope={JSON.stringify(deriveScope(incident))} />
+          <TicketsPanel readOnly={true} initialScope={deriveScope(incident)} />
         ) : null}
 
       </div>

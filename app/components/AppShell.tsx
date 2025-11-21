@@ -7,6 +7,7 @@ import { ReactNode, useMemo } from "react";
 
 const navItems = [
   { href: "/", label: "Home" },
+  { href: "/chats", label: "Chats" },
   { href: "/incidents", label: "Incidents" },
   { href: "/logs", label: "Logs" },
   { href: "/metrics", label: "Metrics" },
@@ -48,11 +49,10 @@ export function AppShell({
                 <Link
                   key={item.href}
                   href={item.href}
-                  className={`flex items-center justify-between rounded-xl border px-3 py-2 transition ${
-                    active
+                  className={`flex items-center justify-between rounded-xl border px-3 py-2 transition ${active
                       ? "border-[#55cfd0] bg-[#10333a] text-white shadow-sm"
                       : "border-transparent bg-transparent text-slate-300 hover:border-[#23464d] hover:bg-[#10282f]"
-                  }`}
+                    }`}
                 >
                   <span className="font-semibold">{item.label}</span>
                   {active ? <span className="text-[10px] uppercase text-[#89f3f3]">active</span> : null}

@@ -1,6 +1,5 @@
 import { requestJSON } from "@/app/lib/api";
-import { Ticket } from "@/app/lib/types";
-import { QueryScope } from "@/app/lib/scope";
+import { Ticket, QueryScope } from "@/app/lib/types";
 
 export async function fetchTicket(id: string) {
   return requestJSON<Ticket>(`/tickets/${id}`);

@@ -236,7 +236,7 @@ export default function ServiceDetailPage() {
         ) : null}
 
         {activeTab === "tickets" ? (
-          <TicketsPanel readOnly={true} initialScope={JSON.stringify(scope)} />
+          <TicketsPanel readOnly={true} initialScope={scope} />
         ) : null}
 
       </div>
