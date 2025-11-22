@@ -11,25 +11,19 @@ export function ServicesPanel() {
   const [serviceName, setServiceName] = useState("api");
   const [services, setServices] = useState<Service[]>([]);
 
-  const listServices = async () => {
+  const runSearch = async () => {
     serviceState.start();
     try {
-      const res = await requestJSON<Service[]>("/services");
-      setServices(res);
-      serviceState.succeed();
-    } catch (err) {
-      serviceState.fail(err);
-    }
-  };
-
-  const queryServices = async () => {
-    serviceState.start();
-    try {
-      const res = await requestJSON<Service[]>("/services/query", {
-        method: "POST",
-        body: JSON.stringify({ name: serviceName }),
-      });
-      setServices(res);
+      if (!serviceName.trim()) {
+        const res = await requestJSON<Service[]>("/services");
+        setServices(res);
+      } else {
+        const res = await requestJSON<Service[]>("/services/query", {
+          method: "POST",
+          body: JSON.stringify({ name: serviceName }),
+        });
+        setServices(res);
+      }
       serviceState.succeed();
     } catch (err) {
       serviceState.fail(err);
@@ -39,14 +33,13 @@ export function ServicesPanel() {
   return (
     <Section
       title="Services"
-      description="Look up services available from the connected source."
       action={
         <button
           type="button"
-          onClick={listServices}
-          className="rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-medium text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+          onClick={runSearch}
+          className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
         >
-          Refresh
+          Search
         </button>
       }
     >
@@ -61,22 +54,6 @@ export function ServicesPanel() {
             />
           }
         />
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={queryServices}
-            className="rounded-lg bg-[#55cfd0] px-4 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
-          >
-            Filter
-          </button>
-          <button
-            type="button"
-            onClick={listServices}
-            className="rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-semibold text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
-          >
-            List all
-          </button>
-        </div>
       </div>
       {serviceState.error ? <Pill label={serviceState.error} tone="error" /> : null}
       <div className="grid max-h-72 gap-3 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">

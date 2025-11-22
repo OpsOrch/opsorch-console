@@ -109,6 +109,7 @@ export type CopilotAnswer = {
   missing?: string[];
   actions?: { label: string; type: string; payload?: unknown }[];
   references?: CopilotReferences;
+  links?: CopilotLink[];
   data?: unknown;
   confidence?: number;
   chatId?: string;

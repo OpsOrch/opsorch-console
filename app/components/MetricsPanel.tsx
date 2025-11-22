@@ -122,14 +122,13 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
   return (
     <Section
       id="metrics-panel"
-      title="Metrics"
-      description="Run time-series expressions and inspect stats quickly."
+      title="Query"
       action={
         !readOnly ? (
           <button
             type="button"
             onClick={runMetricQuery}
-            className="rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-medium text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0]"
+            className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
           >
             Run query
           </button>
@@ -194,14 +193,7 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
               />
             }
           />
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={runMetricQuery}
-              className="rounded-lg bg-[#55cfd0] px-4 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
-            >
-              {metricState.loading ? "Fetching..." : "Query metrics"}
-            </button>
+          <div className="flex flex-wrap items-center gap-3 justify-end">
             {metricState.error ? <Pill label={metricState.error} tone="error" /> : null}
           </div>
         </>

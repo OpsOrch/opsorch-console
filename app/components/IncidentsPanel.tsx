@@ -5,26 +5,15 @@ import { requestJSON } from "@/app/lib/api";
 import { formatDate } from "@/app/lib/utils";
 import { Incident } from "@/app/lib/types";
 import { Badge, Field, Pill, Section, Select, TextInput } from "@/app/lib/ui";
+import { IncidentCreateModal } from "./IncidentCreateModal";
 
-const incidentStatusOptions = [
-  { value: "open", label: "Open" },
-  { value: "acknowledged", label: "Acknowledged" },
-  { value: "mitigated", label: "Mitigated" },
-  { value: "resolved", label: "Resolved" },
-  { value: "closed", label: "Closed" },
-];
 
-const incidentSeverityOptions = [
-  { value: "sev1", label: "Sev1 - Critical" },
-  { value: "sev2", label: "Sev2 - High" },
-  { value: "sev3", label: "Sev3 - Medium" },
-  { value: "sev4", label: "Sev4 - Low" },
-];
 
 export function IncidentsPanel() {
   const router = useRouter();
   const [incidents, setIncidents] = useState<Incident[]>([]);
-  const [incidentForm, setIncidentForm] = useState({ title: "", status: "open", severity: "sev3" });
+  // const [incidentForm, setIncidentForm] = useState({ title: "", status: "open", severity: "sev3", service: "" }); // Removed
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const incidentState = useAsyncState();
 
   const loadIncidents = async () => {
@@ -38,11 +27,12 @@ export function IncidentsPanel() {
     }
   };
 
-  const createIncident = async () => {
+  const createIncident = async (form: { title: string; status: string; severity: string; service: string }) => {
     const body = JSON.stringify({
-      title: incidentForm.title,
-      status: incidentForm.status,
-      severity: incidentForm.severity,
+      title: form.title,
+      status: form.status,
+      severity: form.severity,
+      service: form.service || undefined,
     });
     incidentState.start();
     try {
@@ -51,7 +41,7 @@ export function IncidentsPanel() {
         body,
       });
       setIncidents((prev) => [inc, ...prev]);
-      setIncidentForm({ title: "", status: "open", severity: "sev3" });
+      setIsCreateModalOpen(false);
       incidentState.succeed();
     } catch (err) {
       incidentState.fail(err);
@@ -63,60 +53,31 @@ export function IncidentsPanel() {
       title="Incidents"
       description="Create incidents, browse the list, and hop into detailed timelines."
       action={
-        <button
-          type="button"
-          onClick={loadIncidents}
-          className="rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-medium text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
-        >
-          Refresh
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
+          >
+            Create Incident
+          </button>
+          <button
+            type="button"
+            onClick={loadIncidents}
+            className="rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-medium text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+          >
+            Refresh
+          </button>
+        </div>
       }
     >
-      <div className="grid gap-3 sm:grid-cols-2">
-        <Field
-          label="Title"
-          input={
-            <TextInput
-              value={incidentForm.title}
-              onChange={(v) => setIncidentForm((f) => ({ ...f, title: v }))}
-              placeholder="Paging latency spike"
-            />
-          }
-        />
-        <div className="grid grid-cols-2 gap-3">
-          <Field
-            label="Status"
-            input={
-              <Select
-                value={incidentForm.status}
-                onChange={(v) => setIncidentForm((f) => ({ ...f, status: v }))}
-                options={incidentStatusOptions}
-              />
-            }
-          />
-          <Field
-            label="Severity"
-            input={
-              <Select
-                value={incidentForm.severity}
-                onChange={(v) => setIncidentForm((f) => ({ ...f, severity: v }))}
-                options={incidentSeverityOptions}
-              />
-            }
-          />
-        </div>
-      </div>
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          onClick={createIncident}
-          disabled={!incidentForm.title || incidentState.loading}
-          className="rounded-lg bg-[#55cfd0] px-4 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8] disabled:cursor-not-allowed disabled:bg-[#b7eded]"
-        >
-          {incidentState.loading ? "Saving..." : "Create incident"}
-        </button>
-        {incidentState.error ? <Pill label={incidentState.error} tone="error" /> : null}
-      </div>
+      <IncidentCreateModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreate={createIncident}
+        loading={incidentState.loading}
+        error={incidentState.error}
+      />
 
       <div className="grid gap-3">
         <div className="flex flex-wrap items-center gap-2">

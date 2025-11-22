@@ -7,7 +7,7 @@ export function Section({
   action,
   id,
 }: {
-  title: string;
+  title?: string;
   description?: string;
   children: React.ReactNode;
   action?: React.ReactNode;
@@ -17,7 +17,7 @@ export function Section({
     <section id={id} className="rounded-2xl border border-zinc-200 bg-white/70 p-6 shadow-sm backdrop-blur">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-lg font-semibold text-zinc-900">{title}</h2>
+          {title ? <h2 className="text-lg font-semibold text-zinc-900">{title}</h2> : null}
           {description ? <p className="text-sm text-zinc-600">{description}</p> : null}
         </div>
         {action}
@@ -231,6 +231,41 @@ export function Select({
         </option>
       ))}
     </select>
+  );
+}
+
+// Modal Component
+export function Modal({
+  isOpen,
+  onClose,
+  title,
+  children,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  title: string;
+  children: React.ReactNode;
+}) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+      <div className="w-full max-w-lg rounded-2xl border border-zinc-200 bg-white shadow-xl">
+        <div className="flex items-center justify-between border-b border-zinc-100 px-6 py-4">
+          <h3 className="text-lg font-semibold text-zinc-900">{title}</h3>
+          <button
+            onClick={onClose}
+            className="rounded-full p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600"
+            type="button"
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <div className="p-6">{children}</div>
+      </div>
+    </div>
   );
 }
 

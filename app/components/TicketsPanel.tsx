@@ -5,6 +5,7 @@ import { useAsyncState } from "@/app/lib/hooks";
 import { Ticket, QueryScope } from "@/app/lib/types";
 import { formatDate, stringify } from "@/app/lib/utils";
 import { CodeBlock, Field, Pill, Section, Select, TextArea, TextInput } from "@/app/lib/ui";
+import { TicketCreateModal } from "./TicketCreateModal";
 
 type TicketsPanelProps = {
   initialTicketId?: string;
@@ -15,7 +16,7 @@ type TicketsPanelProps = {
 export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }: TicketsPanelProps = {}) {
   const router = useRouter();
   const ticketState = useAsyncState();
-  const [ticketForm, setTicketForm] = useState({ title: "", description: "" });
+  // const [ticketForm, setTicketForm] = useState({ title: "", description: "", assignees: "", reporter: "" }); // Removed
   const [ticketStatusUpdate, setTicketStatusUpdate] = useState("resolved");
   const [tickets, setTickets] = useState<Ticket[]>([]);
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null);
@@ -24,6 +25,7 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
   const [searchAssignee, setSearchAssignee] = useState("");
   const [searchReporter, setSearchReporter] = useState("");
   const [searchLimit, setSearchLimit] = useState("25");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { start: startTicketAction, succeed: finishTicketAction, fail: failTicketAction } = ticketState;
 
   const ticketStatusOptions = [
@@ -33,16 +35,26 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
     { value: "closed", label: "Closed" },
   ];
 
-  const createTicket = async () => {
+  const createTicket = async (form: { title: string; description: string; assignees: string; reporter: string }) => {
     ticketState.start();
     try {
+      const payload: Record<string, unknown> = {
+        title: form.title,
+        description: form.description,
+      };
+      if (form.assignees) {
+        payload.assignees = form.assignees.split(",").map((s) => s.trim()).filter(Boolean);
+      }
+      if (form.reporter) {
+        payload.reporter = form.reporter;
+      }
       const res = await requestJSON<Ticket>("/tickets", {
         method: "POST",
-        body: JSON.stringify(ticketForm),
+        body: JSON.stringify(payload),
       });
       setTickets((prev) => [res, ...prev]);
       setSelectedTicket(res);
-      setTicketForm({ title: "", description: "" });
+      setIsCreateModalOpen(false);
       ticketState.succeed();
     } catch (err) {
       ticketState.fail(err);
@@ -143,83 +155,66 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
       id="tickets-panel"
       title="Tickets"
       description="Create tickets and query by keyword, status, reporter, or assignee."
+      action={
+        !readOnly ? (
+          <button
+            type="button"
+            onClick={() => setIsCreateModalOpen(true)}
+            className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
+          >
+            Create Ticket
+          </button>
+        ) : null
+      }
     >
-      {!readOnly && (
-        <>
-          <div className="grid gap-3">
-            <Field
-              label="Title"
-              input={
-                <TextInput
-                  value={ticketForm.title}
-                  onChange={(v) => setTicketForm((f) => ({ ...f, title: v }))}
-                  placeholder="Customer-facing issue"
-                />
-              }
-            />
-            <Field
-              label="Description"
-              input={
-                <TextArea
-                  value={ticketForm.description}
-                  onChange={(v) => setTicketForm((f) => ({ ...f, description: v }))}
-                  placeholder="What is happening and what should be done"
-                />
-              }
-            />
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                type="button"
-                onClick={createTicket}
-                disabled={!ticketForm.title || ticketState.loading}
-                className="rounded-lg bg-[#55cfd0] px-4 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8] disabled:cursor-not-allowed disabled:bg-[#b7eded]"
-              >
-                {ticketState.loading ? "Saving..." : "Create ticket"}
-              </button>
-              {ticketState.error ? <Pill label={ticketState.error} tone="error" /> : null}
-            </div>
-          </div>
-          <div className="grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm">
-            <div className="grid grid-cols-[2fr_auto] items-end gap-2">
-              <Field
-                label="Search tickets (title or description)"
-                input={
-                  <TextInput
-                    value={searchText}
-                    onChange={setSearchText}
-                    placeholder="login error, outage, customer request"
-                  />
-                }
+      <TicketCreateModal
+        isOpen={isCreateModalOpen}
+        onClose={() => setIsCreateModalOpen(false)}
+        onCreate={createTicket}
+        loading={ticketState.loading}
+        error={ticketState.error}
+      />
+
+      <div className="grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm">
+        <div className="grid grid-cols-[2fr_auto] items-end gap-2">
+          <Field
+            label="Search tickets (title or description)"
+            input={
+              <TextInput
+                value={searchText}
+                onChange={setSearchText}
+                placeholder="login error, outage, customer request"
               />
-              <button
-                type="button"
-                onClick={runSearch}
-                className="h-fit rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-semibold text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
-              >
-                Search
-              </button>
-            </div>
-            <div className="grid gap-2 md:grid-cols-3">
-              <Field
-                label="Statuses"
-                input={<TextInput value={searchStatuses} onChange={setSearchStatuses} placeholder="open, acknowledged" />}
-              />
-              <Field
-                label="Assignee"
-                input={<TextInput value={searchAssignee} onChange={setSearchAssignee} placeholder="alice" />}
-              />
-              <Field
-                label="Reporter"
-                input={<TextInput value={searchReporter} onChange={setSearchReporter} placeholder="bob" />}
-              />
-            </div>
-            <Field
-              label="Limit"
-              input={<TextInput value={searchLimit} onChange={setSearchLimit} type="number" placeholder="25" />}
-            />
-          </div>
-        </>
-      )}
+            }
+          />
+          <button
+            type="button"
+            onClick={runSearch}
+            className="h-fit rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-semibold text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+          >
+            Search
+          </button>
+        </div>
+        <div className="grid gap-2 md:grid-cols-3">
+          <Field
+            label="Statuses"
+            input={<TextInput value={searchStatuses} onChange={setSearchStatuses} placeholder="open, acknowledged" />}
+          />
+          <Field
+            label="Assignee"
+            input={<TextInput value={searchAssignee} onChange={setSearchAssignee} placeholder="alice" />}
+          />
+          <Field
+            label="Reporter"
+            input={<TextInput value={searchReporter} onChange={setSearchReporter} placeholder="bob" />}
+          />
+        </div>
+        <Field
+          label="Limit"
+          input={<TextInput value={searchLimit} onChange={setSearchLimit} type="number" placeholder="25" />}
+        />
+      </div>
+
       <div className={readOnly ? "grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm" : "grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm"}>
         <div className="flex flex-col gap-2 max-h-52 overflow-y-auto">
           {ticketState.loading && tickets.length === 0 ? (

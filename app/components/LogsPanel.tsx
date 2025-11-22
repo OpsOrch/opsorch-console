@@ -148,14 +148,13 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
   return (
     <Section
       id="logs-panel"
-      title="Logs"
-      description="Run log searches over the connected source."
+      title="Search"
       action={
         !readOnly ? (
           <button
             type="button"
             onClick={runLogQuery}
-            className="rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-medium text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0]"
+            className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
           >
             Run query
           </button>
@@ -220,14 +219,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
               />
             }
           />
-          <div className="flex flex-wrap items-center gap-3">
-            <button
-              type="button"
-              onClick={runLogQuery}
-              className="rounded-lg bg-[#55cfd0] px-4 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
-            >
-              {logState.loading ? "Querying..." : "Query logs"}
-            </button>
+          <div className="flex flex-wrap items-center gap-3 justify-end">
             {logState.error ? <Pill label={logState.error} tone="error" /> : null}
           </div>
         </>
