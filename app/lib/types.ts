@@ -122,3 +122,23 @@ export type ChatConversation = {
   lastAccessedAt: number;
   turnCount: number;
 };
+
+export type ChatSearchResult = {
+  chatId: string;
+  name: string;
+  createdAt: number;
+  lastAccessedAt: number;
+  turnCount: number;
+  matchedEntities?: {
+    type: 'incident' | 'service' | 'ticket' | 'timestamp';
+    value: string;
+  }[];
+};
+
+export type ChatSearchResponse = {
+  query: string;
+  limit: number;
+  totalResults: number;
+  returnedResults: number;
+  results: ChatSearchResult[];
+};
