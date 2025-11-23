@@ -72,6 +72,7 @@ export function CopilotPanel({ initialChatId }: { initialChatId?: string }) {
   const [question, setQuestion] = useState("");
   const [chatId, setChatId] = useState<string | undefined>(initialChatId);
   const [turns, setTurns] = useState<CopilotTurn[]>([]);
+  const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set());
   const state = useAsyncState();
   const historyRef = useRef<HTMLDivElement | null>(null);
 
@@ -84,6 +85,9 @@ export function CopilotPanel({ initialChatId }: { initialChatId?: string }) {
   const ask = async () => {
     const trimmed = question.trim();
     if (!trimmed || state.loading) return;
+
+    // Close all accordions when sending a new message
+    setOpenAccordions(new Set());
 
     setTurns((prev) => [...prev, { id: makeId("user"), role: "user", text: trimmed }]);
     setQuestion("");
@@ -262,7 +266,21 @@ export function CopilotPanel({ initialChatId }: { initialChatId?: string }) {
                     </div>
 
                     {isError ? null : isCopilot && turn.answer ? (
-                      <Accordion title="View Details">
+                      <Accordion
+                        title="View Details"
+                        isOpen={openAccordions.has(turn.id)}
+                        onToggle={(isOpen) => {
+                          setOpenAccordions((prev) => {
+                            const next = new Set(prev);
+                            if (isOpen) {
+                              next.add(turn.id);
+                            } else {
+                              next.delete(turn.id);
+                            }
+                            return next;
+                          });
+                        }}
+                      >
                         <div className="space-y-4">
                           {turn.answer.evidence?.length ? (
                             <div>

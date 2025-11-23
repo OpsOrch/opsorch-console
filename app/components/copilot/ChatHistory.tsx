@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { ChatConversation, ChatSearchResult } from "@/app/lib/types";
 import { useAsyncState } from "@/app/lib/hooks";
+import { Pagination } from "@/app/components/Pagination";
 
 type ChatHistoryProps = {
     onSelect: (chatId: string) => void;
@@ -10,24 +11,39 @@ type ChatHistoryProps = {
     searchQuery?: string;
 };
 
+const PAGE_SIZE = 10;
+
 export function ChatHistory({ onSelect, activeChatId, searchQuery }: ChatHistoryProps) {
     const [chats, setChats] = useState<(ChatConversation | ChatSearchResult)[]>([]);
-    const [resultCount, setResultCount] = useState<number>(0);
+    const [totalCount, setTotalCount] = useState<number>(0);
+    const [currentPage, setCurrentPage] = useState<number>(0);
     const state = useAsyncState();
     const isSearchMode = !!searchQuery && searchQuery.trim().length > 0;
+
+    useEffect(() => {
+        // Reset to first page when search query changes
+        setCurrentPage(0);
+    }, [searchQuery]);
 
     useEffect(() => {
         const fetchChats = async () => {
             state.start();
             try {
                 let res;
+                const offset = currentPage * PAGE_SIZE;
+                
                 if (isSearchMode) {
                     // Build search query params
                     const params = new URLSearchParams();
                     params.set('query', searchQuery.trim());
+                    params.set('limit', PAGE_SIZE.toString());
                     res = await fetch(`/api/copilot/chats/search?${params.toString()}`);
                 } else {
-                    res = await fetch("/api/copilot/chats");
+                    // Build pagination params
+                    const params = new URLSearchParams();
+                    params.set('limit', PAGE_SIZE.toString());
+                    params.set('offset', offset.toString());
+                    res = await fetch(`/api/copilot/chats?${params.toString()}`);
                 }
 
                 if (!res.ok) {
@@ -37,11 +53,17 @@ export function ChatHistory({ onSelect, activeChatId, searchQuery }: ChatHistory
 
                 if (isSearchMode) {
                     setChats(data.results || []);
-                    setResultCount(data.totalResults || 0);
+                    setTotalCount(data.totalResults || 0);
                 } else {
                     setChats(data.conversations || []);
-                    setResultCount(data.conversations?.length || 0);
+                    setTotalCount(data.pagination?.total || 0);
                 }
+                console.log('[ChatHistory] Loaded:', { 
+                    isSearchMode, 
+                    chatsCount: data.conversations?.length || data.results?.length, 
+                    totalCount: data.pagination?.total || data.totalResults,
+                    pagination: data.pagination 
+                });
                 state.succeed();
             } catch (err) {
                 state.fail(err);
@@ -49,7 +71,7 @@ export function ChatHistory({ onSelect, activeChatId, searchQuery }: ChatHistory
         };
 
         fetchChats();
-    }, [searchQuery]);
+    }, [searchQuery, currentPage]);
 
     if (state.loading) {
         return (
@@ -83,7 +105,7 @@ export function ChatHistory({ onSelect, activeChatId, searchQuery }: ChatHistory
         <>
             {isSearchMode && (
                 <div className="px-4 py-2 text-sm text-slate-600">
-                    Found <span className="font-medium">{resultCount}</span> result{resultCount !== 1 ? 's' : ''}
+                    Found <span className="font-medium">{totalCount}</span> result{totalCount !== 1 ? 's' : ''}
                 </div>
             )}
             <div className="grid gap-2 p-2">
@@ -97,30 +119,47 @@ export function ChatHistory({ onSelect, activeChatId, searchQuery }: ChatHistory
                     });
 
                     const searchResult = isSearchMode ? chat as ChatSearchResult : null;
+                    const regularChat = !isSearchMode ? chat as ChatConversation : null;
+                    const snippet = searchResult?.matchingTurns?.[0]?.snippet;
+                    const preview = regularChat?.preview;
 
                     return (
                         <button
                             key={chat.chatId}
                             type="button"
                             onClick={() => onSelect(chat.chatId)}
-                            className={`flex flex-col items-start gap-1 rounded-lg border p-3 text-left transition-all hover:shadow-md ${isActive
+                            className={`flex flex-col items-start gap-2 rounded-lg border p-3 text-left transition-all hover:shadow-md ${isActive
                                 ? "border-[#55cfd0] bg-[#f4fcfc]"
                                 : "border-slate-200 bg-white hover:border-slate-300"
                                 }`}
                         >
                             <div className="flex w-full items-center justify-between gap-2">
-                                <span className="truncate text-xs font-medium text-slate-500">
+                                <span className="truncate text-sm font-medium text-slate-900">
                                     {chat.name || chat.chatId}
                                 </span>
-                                <span className="text-[10px] text-slate-400">{date}</span>
+                                <span className="text-[10px] text-slate-400 whitespace-nowrap">{date}</span>
                             </div>
-                            <div className="flex items-center gap-2">
-                                <span className="text-xs text-slate-700">
+                            
+                            {/* Show snippet for search results or preview for regular chats */}
+                            {(snippet || preview) && (
+                                <p className="text-xs text-slate-600 line-clamp-2">
+                                    {snippet || preview}
+                                </p>
+                            )}
+                            
+                            <div className="flex items-center gap-3 text-xs text-slate-500">
+                                <span>
                                     {chat.turnCount} {chat.turnCount === 1 ? "turn" : "turns"}
                                 </span>
+                                {searchResult?.matchCount && (
+                                    <span className="text-[#55cfd0]">
+                                        {searchResult.matchCount} {searchResult.matchCount === 1 ? "match" : "matches"}
+                                    </span>
+                                )}
                             </div>
+                            
                             {searchResult?.matchedEntities && searchResult.matchedEntities.length > 0 && (
-                                <div className="mt-1 flex flex-wrap gap-1">
+                                <div className="flex flex-wrap gap-1">
                                     {searchResult.matchedEntities.map((entity, idx) => (
                                         <span
                                             key={idx}
@@ -135,6 +174,18 @@ export function ChatHistory({ onSelect, activeChatId, searchQuery }: ChatHistory
                     );
                 })}
             </div>
+            
+            {/* Pagination */}
+            {totalCount > PAGE_SIZE && (
+                <div className="border-t border-slate-200">
+                    <Pagination
+                        currentPage={currentPage}
+                        totalItems={totalCount}
+                        pageSize={PAGE_SIZE}
+                        onPageChange={setCurrentPage}
+                    />
+                </div>
+            )}
         </>
     );
 }

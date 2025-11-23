@@ -119,16 +119,33 @@ export function Accordion({
   title,
   children,
   defaultOpen = false,
+  isOpen: controlledIsOpen,
+  onToggle,
 }: {
   title: string;
   children: React.ReactNode;
   defaultOpen?: boolean;
+  isOpen?: boolean;
+  onToggle?: (isOpen: boolean) => void;
 }) {
-  const [isOpen, setIsOpen] = useState(defaultOpen);
+  const [internalIsOpen, setInternalIsOpen] = useState(defaultOpen);
+
+  // Use controlled state if provided, otherwise use internal state
+  const isOpen = controlledIsOpen !== undefined ? controlledIsOpen : internalIsOpen;
+
+  const handleToggle = () => {
+    const newState = !isOpen;
+    if (onToggle) {
+      onToggle(newState);
+    } else {
+      setInternalIsOpen(newState);
+    }
+  };
+
   return (
     <div className="rounded-lg border border-slate-200 bg-white">
       <button
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-slate-50"
         type="button"
       >

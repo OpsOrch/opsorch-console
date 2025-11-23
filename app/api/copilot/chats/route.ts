@@ -10,9 +10,16 @@ const COPILOT_BASE_URL = trimTrailingSlash(
     "http://localhost:6060",
 );
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const res = await fetch(`${COPILOT_BASE_URL}/chats`, {
+    const { searchParams } = new URL(request.url);
+    const queryString = searchParams.toString();
+    
+    const url = queryString 
+      ? `${COPILOT_BASE_URL}/chats?${queryString}`
+      : `${COPILOT_BASE_URL}/chats`;
+    
+    const res = await fetch(url, {
       method: "GET",
       headers: { "Content-Type": "application/json" },
       cache: "no-store",

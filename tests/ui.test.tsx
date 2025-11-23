@@ -1,6 +1,5 @@
 import assert from "node:assert";
 import test from "node:test";
-import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { Field, Pill, Section, Select, TextArea, TextInput } from "../app/lib/ui.tsx";
 
@@ -52,7 +51,7 @@ test("Select renders options with labels and values", () => {
       onChange={() => undefined}
       options={[
         { value: "a", label: "Alpha" },
-        { value: "b" },
+        { value: "b", label: "Beta" },
       ]}
     />,
   );

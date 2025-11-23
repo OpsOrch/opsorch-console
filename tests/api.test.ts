@@ -50,7 +50,7 @@ test("getApiBaseUrl falls back and returns empty when unset", (t) => {
 });
 
 test("requestJSON proxies requests, merges headers, and parses JSON", async () => {
-  const fetchMock = mock.method(globalThis, "fetch", async (input, init?: RequestInit) => {
+  const fetchMock = mock.method(globalThis, "fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
     assert.equal(input, "/api/proxy/foo");
     assert.equal(init?.method, "POST");
     const headers = init?.headers as Record<string, string>;

@@ -121,6 +121,14 @@ export type ChatConversation = {
   createdAt: number;
   lastAccessedAt: number;
   turnCount: number;
+  preview?: string;
+};
+
+export type MatchingTurn = {
+  turnIndex: number;
+  snippet: string;
+  timestamp: number;
+  matchType: 'user' | 'assistant' | 'entity';
 };
 
 export type ChatSearchResult = {
@@ -129,6 +137,8 @@ export type ChatSearchResult = {
   createdAt: number;
   lastAccessedAt: number;
   turnCount: number;
+  matchCount: number;
+  matchingTurns: MatchingTurn[];
   matchedEntities?: {
     type: 'incident' | 'service' | 'ticket' | 'timestamp';
     value: string;
