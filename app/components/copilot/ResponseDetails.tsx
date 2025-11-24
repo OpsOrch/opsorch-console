@@ -127,7 +127,7 @@ export function ResponseDetails({ answer }: { answer: CopilotAnswer }) {
     if (!hasDetails) return null;
 
     return (
-        <Accordion title="Details" defaultOpen={false}>
+        <Accordion title="Details" defaultOpen={true}>
             <ResponseDetailsContent answer={answer} />
         </Accordion>
     );

@@ -9,7 +9,7 @@ import { MetricsPanel } from "@/app/components/MetricsPanel";
 import { TicketsPanel } from "@/app/components/TicketsPanel";
 import { queryServices } from "@/app/lib/services";
 import { queryIncidents } from "@/app/lib/incidents";
-import { Service, Incident, LogReference, MetricReference } from "@/app/lib/types";
+import { Service, Incident } from "@/app/lib/types";
 import { Pill } from "@/app/lib/ui";
 import { formatDate } from "@/app/lib/utils";
 
@@ -213,10 +213,10 @@ export default function ServiceDetailPage() {
         {activeTab === "logs" ? (
           <LogsPanel
             initialReference={{
-              query: "*",
+              expression: { search: "*" },
               start: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
               end: new Date().toISOString(),
-            } as LogReference}
+            }}
             autoRun={true}
             readOnly={true}
           />
@@ -225,11 +225,11 @@ export default function ServiceDetailPage() {
         {activeTab === "metrics" ? (
           <MetricsPanel
             initialReference={{
-              expression: serviceSearchTerm ? `service="${serviceSearchTerm}"` : "up",
+              expression: { metricName: serviceSearchTerm ? `service="${serviceSearchTerm}"` : "up" },
               start: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
               end: new Date().toISOString(),
               step: 60,
-            } as MetricReference}
+            }}
             autoRun={true}
             readOnly={true}
           />

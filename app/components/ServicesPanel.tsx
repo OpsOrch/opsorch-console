@@ -1,14 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { requestJSON } from "@/app/lib/api";
 import { useAsyncState } from "@/app/lib/hooks";
 import { Service } from "@/app/lib/types";
 import { Badge, Field, Pill, Section, TextInput } from "@/app/lib/ui";
 
-export function ServicesPanel() {
+type ServicesPanelProps = {
+  initialName?: string;
+};
+
+export function ServicesPanel({ initialName }: ServicesPanelProps = {}) {
   const router = useRouter();
   const serviceState = useAsyncState();
-  const [serviceName, setServiceName] = useState("api");
+  const [serviceName, setServiceName] = useState(initialName || "api");
   const [services, setServices] = useState<Service[]>([]);
 
   const runSearch = async () => {
@@ -29,6 +33,14 @@ export function ServicesPanel() {
       serviceState.fail(err);
     }
   };
+
+  // Auto-run search if initialName is provided
+  useEffect(() => {
+    if (initialName) {
+      runSearch();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialName]);
 
   return (
     <Section

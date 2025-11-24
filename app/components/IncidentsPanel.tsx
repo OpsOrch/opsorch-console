@@ -4,7 +4,7 @@ import { useAsyncState } from "@/app/lib/hooks";
 import { requestJSON } from "@/app/lib/api";
 import { formatDate } from "@/app/lib/utils";
 import { Incident } from "@/app/lib/types";
-import { Badge, Field, Pill, Section, Select, TextInput } from "@/app/lib/ui";
+import { Badge, Section } from "@/app/lib/ui";
 import { IncidentCreateModal } from "./IncidentCreateModal";
 
 
@@ -19,7 +19,10 @@ export function IncidentsPanel() {
   const loadIncidents = async () => {
     incidentState.start();
     try {
-      const data = await requestJSON<Incident[]>("/incidents");
+      const data = await requestJSON<Incident[]>("/incidents/query", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
       setIncidents(data);
       incidentState.succeed();
     } catch (err) {

@@ -1,38 +1,23 @@
 import React from "react";
 import { CopilotReferences } from "@/app/lib/types";
-
-// Helper functions for building reference URLs
-import { QueryScope } from "@/app/lib/types";
-
-function buildMetricHref(m: { expression: string; start?: string; end?: string; scope?: QueryScope }) {
-    const params = new URLSearchParams();
-    params.set("expression", m.expression);
-    if (m.start) params.set("start", m.start);
-    if (m.end) params.set("end", m.end);
-    if (m.scope) params.set("scope", JSON.stringify(m.scope));
-    const query = params.toString();
-    return query ? `/metrics?${query}` : "/metrics";
-}
-
-function buildLogHref(l: { query: string; start?: string; end?: string; service?: string; scope?: QueryScope }) {
-    const params = new URLSearchParams();
-    params.set("query", l.query);
-    if (l.start) params.set("start", l.start);
-    if (l.end) params.set("end", l.end);
-    if (l.service) params.set("service", l.service);
-    if (l.scope) params.set("scope", JSON.stringify(l.scope));
-    const query = params.toString();
-    return query ? `/logs?${query}` : "/logs";
-}
+import { buildLogHref, buildMetricHref } from "@/app/lib/referenceBuilder";
 
 export function ReferenceLinks({
     references,
 }: {
     references?: CopilotReferences;
 }) {
-    if (!references) return null;
+    console.log('[ReferenceLinks] Received references:', references);
+    if (!references) {
+        console.log('[ReferenceLinks] No references provided');
+        return null;
+    }
     const { incidents, services, metrics, logs, tickets } = references;
-    if (!incidents?.length && !services?.length && !metrics?.length && !logs?.length && !tickets?.length) return null;
+    console.log('[ReferenceLinks] Extracted:', { incidents, services, metrics, logs, tickets });
+    if (!incidents?.length && !services?.length && !metrics?.length && !logs?.length && !tickets?.length) {
+        console.log('[ReferenceLinks] All reference arrays are empty');
+        return null;
+    }
 
     const renderList = (items: React.ReactNode[]) => (
         <ul className="mt-2 flex flex-wrap gap-2 text-xs">
@@ -68,7 +53,7 @@ export function ReferenceLinks({
                     {renderList(services.map((svc) => (
                         <a
                             key={`svc-${svc}`}
-                            href={`/services`}
+                            href={`/services?name=${encodeURIComponent(svc)}`}
                             className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 font-semibold text-blue-700 shadow-sm transition-all hover:border-blue-300 hover:bg-blue-100 hover:shadow"
                         >
                             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -108,7 +93,12 @@ export function ReferenceLinks({
                     <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Metrics</p>
                     {renderList(
                         metrics.map((m, idx) => {
-                            const content = m.expression;
+                            // Handle both object format { metricName: "..." } and string format "metric_name{...}"
+                            const content = typeof m.expression === 'object' && m.expression?.metricName
+                                ? m.expression.metricName
+                                : typeof m.expression === 'string'
+                                    ? m.expression
+                                    : "(unnamed)";
                             const tooltip = `${m.start || "?"} → ${m.end || "?"}${m.scope ? ` • Scope: ${JSON.stringify(m.scope)}` : ""}`;
                             return (
                                 <a
@@ -132,7 +122,8 @@ export function ReferenceLinks({
                     <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Logs</p>
                     {renderList(
                         logs.map((l, idx) => {
-                            const content = l.query;
+                            // Handle both expression.search (object) and query (string) formats
+                            const content = l.expression?.search || "(unnamed)";
                             const tooltip = `${l.start || "?"} → ${l.end || "?"}${l.scope ? ` • Scope: ${JSON.stringify(l.scope)}` : ""}`;
                             return (
                                 <a

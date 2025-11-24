@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import test, { mock } from "node:test";
-import { getApiBaseUrl, requestJSON, trimTrailingSlash } from "../app/lib/api.ts";
+import { getApiBaseUrl, requestJSON, trimTrailingSlash } from "../app/lib/api.js";
 
 test("trimTrailingSlash removes final slash while preserving others", () => {
   assert.equal(trimTrailingSlash("https://example.com/"), "https://example.com");

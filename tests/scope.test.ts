@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import test from "node:test";
-import { parseScope, serializeScope, mergeScopes } from "../app/lib/scope.ts";
+import { parseScope, serializeScope, mergeScopes } from "../app/lib/scope.js";
 
 test("parseScope returns undefined for null/undefined/empty", () => {
   assert.strictEqual(parseScope(null), undefined);

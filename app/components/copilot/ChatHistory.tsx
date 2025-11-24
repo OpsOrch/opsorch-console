@@ -31,7 +31,7 @@ export function ChatHistory({ onSelect, activeChatId, searchQuery }: ChatHistory
             try {
                 let res;
                 const offset = currentPage * PAGE_SIZE;
-                
+
                 if (isSearchMode) {
                     // Build search query params
                     const params = new URLSearchParams();
@@ -58,11 +58,11 @@ export function ChatHistory({ onSelect, activeChatId, searchQuery }: ChatHistory
                     setChats(data.conversations || []);
                     setTotalCount(data.pagination?.total || 0);
                 }
-                console.log('[ChatHistory] Loaded:', { 
-                    isSearchMode, 
-                    chatsCount: data.conversations?.length || data.results?.length, 
+                console.log('[ChatHistory] Loaded:', {
+                    isSearchMode,
+                    chatsCount: data.conversations?.length || data.results?.length,
                     totalCount: data.pagination?.total || data.totalResults,
-                    pagination: data.pagination 
+                    pagination: data.pagination
                 });
                 state.succeed();
             } catch (err) {
@@ -71,7 +71,8 @@ export function ChatHistory({ onSelect, activeChatId, searchQuery }: ChatHistory
         };
 
         fetchChats();
-    }, [searchQuery, currentPage]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [searchQuery, currentPage, isSearchMode]);
 
     if (state.loading) {
         return (
@@ -139,14 +140,14 @@ export function ChatHistory({ onSelect, activeChatId, searchQuery }: ChatHistory
                                 </span>
                                 <span className="text-[10px] text-slate-400 whitespace-nowrap">{date}</span>
                             </div>
-                            
+
                             {/* Show snippet for search results or preview for regular chats */}
                             {(snippet || preview) && (
                                 <p className="text-xs text-slate-600 line-clamp-2">
                                     {snippet || preview}
                                 </p>
                             )}
-                            
+
                             <div className="flex items-center gap-3 text-xs text-slate-500">
                                 <span>
                                     {chat.turnCount} {chat.turnCount === 1 ? "turn" : "turns"}
@@ -157,7 +158,7 @@ export function ChatHistory({ onSelect, activeChatId, searchQuery }: ChatHistory
                                     </span>
                                 )}
                             </div>
-                            
+
                             {searchResult?.matchedEntities && searchResult.matchedEntities.length > 0 && (
                                 <div className="flex flex-wrap gap-1">
                                     {searchResult.matchedEntities.map((entity, idx) => (
@@ -174,7 +175,7 @@ export function ChatHistory({ onSelect, activeChatId, searchQuery }: ChatHistory
                     );
                 })}
             </div>
-            
+
             {/* Pagination */}
             {totalCount > PAGE_SIZE && (
                 <div className="border-t border-slate-200">

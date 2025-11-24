@@ -4,6 +4,7 @@ import { requestJSON } from "@/app/lib/api";
 import { LogEntry, LogReference } from "@/app/lib/types";
 import { CodeBlock, Field, Pill, Section, TextInput } from "@/app/lib/ui";
 import { formatDate } from "@/app/lib/utils";
+import { ScopeInputs } from "@/app/components/ScopeInputs";
 
 type LogsPanelProps = {
   initialReference?: LogReference;
@@ -69,8 +70,11 @@ const toInputTimestamp = (value?: string) => {
 const deriveLogQuery = (reference?: LogReference) => {
   const defaultEnd = new Date();
   const defaultStart = new Date(defaultEnd.getTime() - 60 * 60 * 1000);
+  const defaultSearch = reference?.expression?.search || "";
   return {
-    query: reference?.query || "service:error OR level:error",
+    query: defaultSearch,
+    filters: reference?.expression?.filters || [],
+    severityIn: reference?.expression?.severityIn || [],
     start: toInputTimestamp(reference?.start) || defaultStart.toISOString().slice(0, 16),
     end: toInputTimestamp(reference?.end) || defaultEnd.toISOString().slice(0, 16),
     limit: "100",
@@ -82,6 +86,8 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
   const logState = useAsyncState();
   const [logQuery, setLogQuery] = useState(() => deriveLogQuery(initialReference));
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(Boolean(initialReference?.expression?.severityIn?.length || initialReference?.scope));
+  const [severityIn, setSeverityIn] = useState(() => initialReference?.expression?.severityIn?.join(", ") || "");
   const { start, succeed, fail } = logState;
   const autoRunRef = useRef(autoRun);
 
@@ -96,8 +102,10 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
   const executeLogQuery = useCallback(async (query: typeof logQuery) => {
     start();
     try {
+      const expression: Record<string, unknown> = { search: query.query || "" };
+      if (severityIn) expression.severityIn = severityIn.split(",").map(s => s.trim()).filter(Boolean);
       const payload: Record<string, unknown> = {
-        query: query.query,
+        expression,
         start: new Date(query.start).toISOString(),
         end: new Date(query.end).toISOString(),
         scope: query.scope,
@@ -115,7 +123,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
     } catch (err) {
       fail(err);
     }
-  }, [fail, setLogs, start, succeed]);
+  }, [fail, setLogs, start, succeed, severityIn]);
 
   const [prevInitialReference, setPrevInitialReference] = useState(initialReference);
   if (initialReference !== prevInitialReference) {
@@ -164,12 +172,12 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
       {!readOnly && (
         <>
           <Field
-            label="Query"
+            label="Search"
             input={
               <TextInput
                 value={logQuery.query}
                 onChange={(v) => setLogQuery((q) => ({ ...q, query: v }))}
-                placeholder="level:error"
+                placeholder="error connection timeout"
               />
             }
           />
@@ -219,6 +227,39 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
               />
             }
           />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              {showAdvanced ? "Hide" : "Show"} Advanced Options
+            </button>
+          </div>
+          {showAdvanced && (
+            <div className="space-y-4 rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 shadow-sm">
+              <Field
+                label="Severity Filter (comma-separated)"
+                input={
+                  <TextInput
+                    value={severityIn}
+                    onChange={setSeverityIn}
+                    placeholder="error,critical,warning"
+                  />
+                }
+              />
+              
+              <div className="border-t border-slate-200 pt-4">
+                <ScopeInputs
+                  scope={logQuery.scope}
+                  onChange={(scope) => setLogQuery((q) => ({ ...q, scope }))}
+                />
+              </div>
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-3 justify-end">
             {logState.error ? <Pill label={logState.error} tone="error" /> : null}
           </div>

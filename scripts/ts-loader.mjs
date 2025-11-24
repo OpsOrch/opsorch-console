@@ -19,6 +19,37 @@ export async function resolve(specifier, context, next) {
   if (specifier.startsWith("@/")) {
     return { url: resolveAlias(specifier), shortCircuit: true };
   }
+
+  // Handle .js extensions that should resolve to .ts files
+  if (specifier.endsWith(".js") && context.parentURL) {
+    const parentPath = fileURLToPath(context.parentURL);
+    const parentDir = parentPath.substring(0, parentPath.lastIndexOf("/"));
+    const specifierWithoutExt = specifier.slice(0, -3);
+
+    // Try to resolve as a relative path
+    if (specifier.startsWith("./") || specifier.startsWith("../")) {
+      for (const ext of [".ts", ".tsx", ".js", ".jsx"]) {
+        const candidate = new URL(`${specifierWithoutExt}${ext}`, `file://${parentDir}/`);
+        if (existsSync(fileURLToPath(candidate))) {
+          return { url: candidate.href, shortCircuit: true };
+        }
+      }
+    }
+  }
+
+  // Handle extensionless relative imports
+  if ((specifier.startsWith("./") || specifier.startsWith("../")) && !specifier.endsWith(".js") && context.parentURL) {
+    const parentPath = fileURLToPath(context.parentURL);
+    const parentDir = parentPath.substring(0, parentPath.lastIndexOf("/"));
+
+    for (const ext of [".ts", ".tsx", ".js", ".jsx"]) {
+      const candidate = new URL(`${specifier}${ext}`, `file://${parentDir}/`);
+      if (existsSync(fileURLToPath(candidate))) {
+        return { url: candidate.href, shortCircuit: true };
+      }
+    }
+  }
+
   return next(specifier, context);
 }
 

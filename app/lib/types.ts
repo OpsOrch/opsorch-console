@@ -40,10 +40,44 @@ export type MetricSeries = {
   metadata?: Record<string, unknown>;
 };
 
+export type MetricDescriptor = {
+  name: string;
+  type: string;
+  description: string;
+  labels?: string[];
+  unit?: string;
+  metadata?: Record<string, unknown>;
+};
+
 export type QueryScope = {
   service?: string;
   environment?: string;
   team?: string;
+};
+
+export type LogFilter = {
+  field: string;
+  operator: string;
+  value: string;
+};
+
+export type LogExpression = {
+  search?: string;
+  filters?: LogFilter[];
+  severityIn?: string[];
+};
+
+export type MetricFilter = {
+  label: string;
+  operator: string;
+  value: string;
+};
+
+export type MetricExpression = {
+  metricName: string;
+  aggregation?: string;
+  filters?: MetricFilter[];
+  groupBy?: string[];
 };
 
 export type Ticket = {
@@ -81,7 +115,7 @@ export type CopilotLink = {
 };
 
 export type MetricReference = {
-  expression: string;
+  expression: MetricExpression;
   start?: string;
   end?: string;
   step?: number;
@@ -89,7 +123,7 @@ export type MetricReference = {
 };
 
 export type LogReference = {
-  query: string;
+  expression: LogExpression;
   start?: string;
   end?: string;
   scope?: QueryScope;

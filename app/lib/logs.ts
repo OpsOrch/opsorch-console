@@ -1,8 +1,8 @@
 import { requestJSON } from "@/app/lib/api";
-import { LogEntry, QueryScope } from "@/app/lib/types";
+import { LogEntry, LogExpression, QueryScope } from "@/app/lib/types";
 
 export type LogQueryInput = {
-  query?: string;
+  expression?: LogExpression;
   start: string;
   end: string;
   limit?: number;

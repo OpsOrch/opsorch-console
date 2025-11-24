@@ -1,7 +1,7 @@
 import assert from "node:assert";
 import test from "node:test";
 import { renderToStaticMarkup } from "react-dom/server";
-import { Field, Pill, Section, Select, TextArea, TextInput } from "../app/lib/ui.tsx";
+import { Field, Pill, Section, Select, TextArea, TextInput } from "../app/lib/ui.js";
 
 test("Section renders title, description, children, and action", () => {
   const html = renderToStaticMarkup(

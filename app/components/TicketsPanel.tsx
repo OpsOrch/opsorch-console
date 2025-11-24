@@ -4,7 +4,7 @@ import { requestJSON } from "@/app/lib/api";
 import { useAsyncState } from "@/app/lib/hooks";
 import { Ticket, QueryScope } from "@/app/lib/types";
 import { formatDate, stringify } from "@/app/lib/utils";
-import { CodeBlock, Field, Pill, Section, Select, TextArea, TextInput } from "@/app/lib/ui";
+import { CodeBlock, Field, Pill, Section, Select, TextInput } from "@/app/lib/ui";
 import { TicketCreateModal } from "./TicketCreateModal";
 
 type TicketsPanelProps = {

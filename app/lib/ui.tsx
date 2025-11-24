@@ -406,3 +406,151 @@ export function TimeSeriesChart({
     </div>
   );
 }
+
+// Gauge Component
+export function Gauge({
+  value,
+  min = 0,
+  max = 100,
+  label,
+  units,
+  size = "md",
+}: {
+  value: number;
+  min?: number;
+  max?: number;
+  label?: string;
+  units?: string;
+  size?: "sm" | "md" | "lg";
+}) {
+  const normalizedValue = Math.min(Math.max(value, min), max);
+  const percentage = (normalizedValue - min) / (max - min);
+  const angle = percentage * 180;
+
+  const sizes = {
+    sm: { width: 120, height: 80, fontSize: "text-xl", labelSize: "text-xs" },
+    md: { width: 200, height: 120, fontSize: "text-3xl", labelSize: "text-sm" },
+    lg: { width: 300, height: 180, fontSize: "text-5xl", labelSize: "text-base" },
+  };
+
+  const { width, height, fontSize, labelSize } = sizes[size];
+  const radius = width / 2 - 10;
+  const cx = width / 2;
+  const cy = height - 10;
+
+  // Calculate path for the arc
+  const startAngle = -180;
+  const endAngle = -180 + angle;
+
+  const startRad = (startAngle * Math.PI) / 180;
+  const endRad = (endAngle * Math.PI) / 180;
+
+  const x1 = cx + radius * Math.cos(startRad);
+  const y1 = cy + radius * Math.sin(startRad);
+  const x2 = cx + radius * Math.cos(endRad);
+  const y2 = cy + radius * Math.sin(endRad);
+
+  const largeArcFlag = angle > 180 ? 1 : 0;
+
+  const pathData = [
+    `M ${x1} ${y1}`,
+    `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
+  ].join(" ");
+
+  return (
+    <div className="flex flex-col items-center justify-center">
+      <div className="relative" style={{ width, height }}>
+        <svg width={width} height={height} className="overflow-visible">
+          {/* Background Arc */}
+          <path
+            d={`M ${cx - radius} ${cy} A ${radius} ${radius} 0 0 1 ${cx + radius} ${cy}`}
+            fill="none"
+            stroke="#e2e8f0"
+            strokeWidth="12"
+            strokeLinecap="round"
+          />
+          {/* Value Arc */}
+          <path
+            d={pathData}
+            fill="none"
+            stroke="#14b8a6"
+            strokeWidth="12"
+            strokeLinecap="round"
+            className="transition-all duration-1000 ease-out"
+          />
+        </svg>
+        <div className="absolute inset-x-0 bottom-0 text-center">
+          <div className={`font-bold text-slate-900 ${fontSize}`}>
+            {value.toFixed(1)}
+            {units && <span className="ml-1 text-sm font-medium text-slate-500">{units}</span>}
+          </div>
+          {label && <div className={`text-slate-500 ${labelSize}`}>{label}</div>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Histogram Component
+export function Histogram({
+  values,
+  bins = 10,
+  height = 200,
+  color = "#14b8a6",
+}: {
+  values: number[];
+  bins?: number;
+  height?: number;
+  color?: string;
+}) {
+  if (!values.length) {
+    return (
+      <div className="flex items-center justify-center rounded-lg bg-slate-50 text-xs text-slate-500" style={{ height }}>
+        No data available
+      </div>
+    );
+  }
+
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const binWidth = range / bins;
+
+  const histogramData = Array(bins).fill(0);
+  values.forEach((v) => {
+    const binIndex = Math.min(Math.floor((v - min) / binWidth), bins - 1);
+    histogramData[binIndex]++;
+  });
+
+  const maxCount = Math.max(...histogramData);
+
+  return (
+    <div className="flex items-end gap-1" style={{ height }}>
+      {histogramData.map((count, i) => {
+        const percentage = maxCount ? (count / maxCount) * 100 : 0;
+        const binStart = min + i * binWidth;
+        const binEnd = binStart + binWidth;
+
+        return (
+          <div key={i} className="group relative flex-1 bg-slate-100 hover:bg-slate-200 rounded-t-sm transition-colors h-full flex items-end">
+            <div
+              className="w-full rounded-t-sm transition-all duration-500"
+              style={{
+                height: `${percentage}%`,
+                backgroundColor: color,
+                opacity: 0.7 + (percentage / 100) * 0.3,
+              }}
+            />
+            {/* Tooltip */}
+            <div className="absolute bottom-full left-1/2 mb-2 hidden -translate-x-1/2 rounded bg-slate-900 px-2 py-1 text-xs text-white shadow-lg group-hover:block z-10 whitespace-nowrap">
+              <div className="font-semibold">{count} items</div>
+              <div className="text-slate-300">
+                {binStart.toFixed(1)} - {binEnd.toFixed(1)}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}

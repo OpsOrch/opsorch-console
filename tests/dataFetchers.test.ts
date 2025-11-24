@@ -1,10 +1,10 @@
 import assert from "node:assert";
 import test, { mock } from "node:test";
-import { fetchIncident, fetchIncidentTimeline, queryIncidents } from "../app/lib/incidents.ts";
-import { queryLogs } from "../app/lib/logs.ts";
-import { queryMetrics } from "../app/lib/metrics.ts";
-import { listServices, queryServices } from "../app/lib/services.ts";
-import { queryTickets } from "../app/lib/tickets.ts";
+import { fetchIncident, fetchIncidentTimeline, queryIncidents } from "../app/lib/incidents.js";
+import { queryLogs } from "../app/lib/logs.js";
+import { queryMetrics } from "../app/lib/metrics.js";
+import { listServices, queryServices } from "../app/lib/services.js";
+import { queryTickets } from "../app/lib/tickets.js";
 
 test("fetchIncident requests by id", async () => {
   const fetchMock = mock.method(globalThis, "fetch", async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -58,7 +58,7 @@ test("queryLogs posts the full input payload", async () => {
 });
 
 test("queryMetrics posts metric expression and scope", async () => {
-  const input = { expression: "sum(rate(http_requests))", start: "s", end: "e", step: 60, scope: { environment: "prod" } };
+  const input = { expression: { metricName: "http_requests", aggregation: "sum" }, start: "s", end: "e", step: 60, scope: { environment: "prod" } };
   const fetchMock = mock.method(globalThis, "fetch", async (path: RequestInfo | URL, init?: RequestInit) => {
     assert.equal(path, "/api/proxy/metrics/query");
     assert.equal(init?.method, "POST");

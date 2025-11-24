@@ -8,7 +8,7 @@ import { LogsPanel } from "@/app/components/LogsPanel";
 import { MetricsPanel } from "@/app/components/MetricsPanel";
 import { TicketsPanel } from "@/app/components/TicketsPanel";
 import { requestJSON } from "@/app/lib/api";
-import { Incident, TimelineEntry, LogReference, MetricReference } from "@/app/lib/types";
+import { Incident, TimelineEntry } from "@/app/lib/types";
 import { Field, Pill, TextArea, TextInput } from "@/app/lib/ui";
 import { formatDate } from "@/app/lib/utils";
 import { buildScopeFromIncident } from "@/app/lib/scope";
@@ -268,11 +268,11 @@ export default function IncidentDetailPage() {
         {activeTab === "logs" ? (
           <LogsPanel
             initialReference={{
-              query: "*",
+              expression: { search: "*" },
               start: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
               end: new Date().toISOString(),
               scope: deriveScope(incident),
-            } as LogReference}
+            }}
             autoRun={true}
             readOnly={true}
           />
@@ -281,12 +281,12 @@ export default function IncidentDetailPage() {
         {activeTab === "metrics" ? (
           <MetricsPanel
             initialReference={{
-              expression: deriveScope(incident).service ? `service="${deriveScope(incident).service}"` : "up",
+              expression: { metricName: deriveScope(incident).service ? `service="${deriveScope(incident).service}"` : "up" },
               start: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
               end: new Date().toISOString(),
               step: 60,
               scope: deriveScope(incident),
-            } as MetricReference}
+            }}
             autoRun={true}
             readOnly={true}
           />

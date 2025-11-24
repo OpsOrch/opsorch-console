@@ -2,7 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAsyncState } from "@/app/lib/hooks";
 import { requestJSON } from "@/app/lib/api";
 import { MetricSeries, MetricReference } from "@/app/lib/types";
-import { Badge, Field, Pill, Section, TextInput, TimeSeriesChart } from "@/app/lib/ui";
+import { Badge, Field, Pill, Section, TextInput, TimeSeriesChart, Gauge, Histogram } from "@/app/lib/ui";
+import { MetricAutocomplete } from "@/app/components/MetricAutocomplete";
+import { ScopeInputs } from "@/app/components/ScopeInputs";
 
 type MetricsPanelProps = {
   initialReference?: MetricReference;
@@ -20,8 +22,12 @@ const toInputTimestamp = (value?: string) => {
 const deriveMetricQuery = (reference?: MetricReference) => {
   const defaultEnd = new Date();
   const defaultStart = new Date(defaultEnd.getTime() - 30 * 60 * 1000);
+  const defaultExpression = reference?.expression?.metricName || "";
   return {
-    expression: reference?.expression || "up",
+    expression: defaultExpression,
+    aggregation: reference?.expression?.aggregation || "",
+    filters: reference?.expression?.filters || [],
+    groupBy: reference?.expression?.groupBy || [],
     start: toInputTimestamp(reference?.start) || defaultStart.toISOString().slice(0, 16),
     end: toInputTimestamp(reference?.end) || defaultEnd.toISOString().slice(0, 16),
     stepSeconds: reference?.step ?? 30,
@@ -33,6 +39,11 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
   const metricState = useAsyncState();
   const [metricQuery, setMetricQuery] = useState(() => deriveMetricQuery(initialReference));
   const [metricSeries, setMetricSeries] = useState<MetricSeries[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(Boolean(initialReference?.expression?.aggregation || initialReference?.expression?.groupBy?.length || initialReference?.scope));
+  const [aggregation, setAggregation] = useState(() => initialReference?.expression?.aggregation || "");
+  const [groupBy, setGroupBy] = useState(() => initialReference?.expression?.groupBy?.join(", ") || "");
+  const [visualizationType, setVisualizationType] = useState<"timeseries" | "histogram" | "gauge">("timeseries");
+  const [gaugeStatistic, setGaugeStatistic] = useState<"latest" | "avg" | "min" | "max">("latest");
   const { start, succeed, fail } = metricState;
   const autoRunRef = useRef(autoRun);
 
@@ -73,11 +84,14 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
     try {
       const stepSeconds = Number(query.stepSeconds);
       const resolvedStep = Number.isFinite(stepSeconds) && stepSeconds > 0 ? stepSeconds : 30;
+      const expression: Record<string, unknown> = { metricName: query.expression || "up" };
+      if (aggregation) expression.aggregation = aggregation;
+      if (groupBy) expression.groupBy = groupBy.split(",").map(s => s.trim()).filter(Boolean);
       const payload: Record<string, unknown> = {
-        expression: query.expression,
+        expression,
         start: new Date(query.start).toISOString(),
         end: new Date(query.end).toISOString(),
-        step: resolvedStep, // Send seconds directly
+        step: resolvedStep,
         scope: query.scope,
       };
       const res = await requestJSON<MetricSeries[]>("/metrics/query", {
@@ -89,7 +103,7 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
     } catch (err) {
       fail(err);
     }
-  }, [fail, setMetricSeries, start, succeed]);
+  }, [fail, setMetricSeries, start, succeed, aggregation, groupBy]);
 
   const [prevInitialReference, setPrevInitialReference] = useState(initialReference);
   if (initialReference !== prevInitialReference) {
@@ -138,12 +152,20 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
       {!readOnly && (
         <>
           <Field
-            label="Expression"
+            label="Metric Name"
             input={
-              <TextInput
+              <MetricAutocomplete
                 value={metricQuery.expression}
                 onChange={(v) => setMetricQuery((q) => ({ ...q, expression: v }))}
-                placeholder="up"
+                onMetricSelect={(metric) => {
+                  if (metric.type === "histogram") {
+                    setVisualizationType("histogram");
+                  } else if (metric.type === "gauge") {
+                    setVisualizationType("gauge");
+                  } else {
+                    setVisualizationType("timeseries");
+                  }
+                }}
               />
             }
           />
@@ -193,6 +215,96 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
               />
             }
           />
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced(!showAdvanced)}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:border-slate-400 hover:bg-slate-50"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+              {showAdvanced ? "Hide" : "Show"} Advanced Options
+            </button>
+          </div>
+          {showAdvanced && (
+            <div className="space-y-4 rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 shadow-sm">
+              <Field
+                label="Aggregation (optional)"
+                input={
+                  <select
+                    value={aggregation}
+                    onChange={(e) => setAggregation(e.target.value)}
+                    className="w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm text-slate-900 transition focus:border-[#55cfd0] focus:outline-none focus:ring-2 focus:ring-[#55cfd0]/20"
+                  >
+                    <option value="">None</option>
+                    <option value="avg">Average</option>
+                    <option value="sum">Sum</option>
+                    <option value="max">Maximum</option>
+                    <option value="min">Minimum</option>
+                    <option value="count">Count</option>
+                    <option value="rate">Rate</option>
+                  </select>
+                }
+              />
+              <Field
+                label="Group By (comma-separated labels)"
+                input={
+                  <TextInput
+                    value={groupBy}
+                    onChange={setGroupBy}
+                    placeholder="status,method"
+                  />
+                }
+              />
+              
+              <div className="border-t border-slate-200 pt-4">
+                <ScopeInputs
+                  scope={metricQuery.scope}
+                  onChange={(scope) => setMetricQuery((q) => ({ ...q, scope }))}
+                />
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-2 mb-4">
+            <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Visualization:</span>
+            <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+              {(["timeseries", "histogram", "gauge"] as const).map((type) => (
+                <button
+                  key={type}
+                  type="button"
+                  onClick={() => setVisualizationType(type)}
+                  className={`rounded px-3 py-1 text-xs font-medium transition ${visualizationType === type
+                    ? "bg-white text-slate-900 shadow-sm"
+                    : "text-slate-500 hover:text-slate-700"
+                    }`}
+                >
+                  {type.charAt(0).toUpperCase() + type.slice(1)}
+                </button>
+              ))}
+            </div>
+            {visualizationType === "gauge" && (
+              <div className="flex items-center gap-2 ml-4">
+                <span className="text-xs font-semibold uppercase tracking-wide text-zinc-500">Value:</span>
+                <div className="flex rounded-lg border border-slate-200 bg-slate-50 p-1">
+                  {(["latest", "avg", "min", "max"] as const).map((stat) => (
+                    <button
+                      key={stat}
+                      type="button"
+                      onClick={() => setGaugeStatistic(stat)}
+                      className={`rounded px-3 py-1 text-xs font-medium transition ${gaugeStatistic === stat
+                          ? "bg-white text-slate-900 shadow-sm"
+                          : "text-slate-500 hover:text-slate-700"
+                        }`}
+                    >
+                      {stat.charAt(0).toUpperCase() + stat.slice(1)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
           <div className="flex flex-wrap items-center gap-3 justify-end">
             {metricState.error ? <Pill label={metricState.error} tone="error" /> : null}
           </div>
@@ -260,10 +372,37 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
                   </div>
 
                   <div className="mt-4">
-                    <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-                      Time Series ({series.points.length} points)
-                    </p>
-                    <TimeSeriesChart points={series.points} name={series.name} color="#14b8a6" />
+                    {visualizationType === "timeseries" && (
+                      <>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Time Series ({series.points.length} points)
+                        </p>
+                        <TimeSeriesChart points={series.points} name={series.name} color="#14b8a6" />
+                      </>
+                    )}
+                    {visualizationType === "histogram" && (
+                      <>
+                        <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                          Distribution ({series.points.length} points)
+                        </p>
+                        <Histogram values={series.points.map((p) => p.value)} color="#14b8a6" />
+                      </>
+                    )}
+                    {visualizationType === "gauge" && (
+                      <div className="py-4">
+                        <Gauge
+                          value={
+                            gaugeStatistic === "latest"
+                              ? (stats.latest ? stats.latest.value : 0)
+                              : (stats[gaugeStatistic] || 0)
+                          }
+                          min={stats.min || 0}
+                          max={stats.max || 100}
+                          label={`${gaugeStatistic.charAt(0).toUpperCase() + gaugeStatistic.slice(1)} Value`}
+                          size="lg"
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

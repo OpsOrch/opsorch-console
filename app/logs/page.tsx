@@ -5,22 +5,22 @@ import { useSearchParams } from "next/navigation";
 import { AppShell } from "@/app/components/AppShell";
 import { LogsPanel } from "@/app/components/LogsPanel";
 import { LogReference } from "@/app/lib/types";
-import { mergeScopes, parseScope } from "@/app/lib/scope";
+import { parseScope } from "@/app/lib/scope";
+import { decodeLogExpression } from "@/app/lib/utils";
 
 const computeReference = (params: URLSearchParams): LogReference | undefined => {
-  const query = params.get("query") || undefined;
+  const expression = decodeLogExpression(params);
   const start = params.get("start") || undefined;
   const end = params.get("end") || undefined;
-  const service = params.get("service") || undefined;
   const scopeStr = params.get("scope");
-  let scope = parseScope(scopeStr);
+  const scope = parseScope(scopeStr);
 
-  if (service) {
-    scope = mergeScopes(scope, { service });
+  // Check if we have any meaningful data
+  if (!expression.search && !expression.filters?.length && !expression.severityIn?.length && !start && !end && !scope) {
+    return undefined;
   }
 
-  if (!query && !start && !end && !scope) return undefined;
-  return { query: query || "", start, end, scope };
+  return { expression, start, end, scope };
 };
 
 import { Suspense } from "react";

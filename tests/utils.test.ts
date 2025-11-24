@@ -1,6 +1,6 @@
 import assert from "node:assert";
 import test from "node:test";
-import { formatDate, stringify } from "../app/lib/utils.ts";
+import { formatDate, stringify } from "../app/lib/utils.js";
 
 test("formatDate returns dash for missing values", () => {
   assert.equal(formatDate(undefined), "-");

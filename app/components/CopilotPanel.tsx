@@ -1,10 +1,9 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, usePathname } from "next/navigation";
 import { CopilotAnswer, CopilotReferences } from "@/app/lib/types";
 import { useAsyncState } from "@/app/lib/hooks";
-import { Accordion, Badge, Field, Pill, Section, TextArea } from "@/app/lib/ui";
+import { Accordion, Field, Pill, Section, TextArea } from "@/app/lib/ui";
 import { ConfidenceBar } from "@/app/components/copilot/ConfidenceBar";
 import { ResponseDetailsContent } from "@/app/components/copilot/ResponseDetails";
 import { parseJsonString, stringifyData } from "@/app/lib/utils";
@@ -50,6 +49,10 @@ function normalizeAnswer(payload: CopilotApiResponse): CopilotAnswer {
     answer.references ||
     (derivedData && typeof derivedData === "object" && (derivedData as { references?: CopilotReferences }).references);
 
+  console.log('[normalizeAnswer] answer.references:', answer.references);
+  console.log('[normalizeAnswer] derivedData:', derivedData);
+  console.log('[normalizeAnswer] derivedReferences:', derivedReferences);
+
   return {
     conclusion: derivedConclusion,
     evidence: answer.evidence,
@@ -67,8 +70,6 @@ function makeId(role: CopilotTurn["role"]) {
 }
 
 export function CopilotPanel({ initialChatId }: { initialChatId?: string }) {
-  const router = useRouter();
-  const pathname = usePathname();
   const [question, setQuestion] = useState("");
   const [chatId, setChatId] = useState<string | undefined>(initialChatId);
   const [turns, setTurns] = useState<CopilotTurn[]>([]);
