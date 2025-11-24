@@ -4,9 +4,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { CopilotAnswer, CopilotReferences } from "@/app/lib/types";
 import { useAsyncState } from "@/app/lib/hooks";
-import { Accordion, Badge, CodeBlock, Field, Pill, Section, TextArea } from "@/app/lib/ui";
+import { Accordion, Badge, Field, Pill, Section, TextArea } from "@/app/lib/ui";
 import { ConfidenceBar } from "@/app/components/copilot/ConfidenceBar";
-import { ReferenceLinks } from "@/app/components/copilot/ReferenceLinks";
+import { ResponseDetailsContent } from "@/app/components/copilot/ResponseDetails";
 import { parseJsonString, stringifyData } from "@/app/lib/utils";
 
 type CopilotTurn = {
@@ -281,73 +281,7 @@ export function CopilotPanel({ initialChatId }: { initialChatId?: string }) {
                           });
                         }}
                       >
-                        <div className="space-y-4">
-                          {turn.answer.evidence?.length ? (
-                            <div>
-                              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Evidence</p>
-                              <div className="space-y-2">
-                                {turn.answer.evidence.map((item, idx) => {
-                                  const itemStr = typeof item === "string" ? item : stringifyData(item);
-                                  const parsed = parseJsonString(itemStr);
-                                  if (parsed) {
-                                    return <CodeBlock key={idx} code={stringifyData(parsed)} language="json" />;
-                                  }
-                                  return (
-                                    <div key={idx} className="rounded-lg border border-slate-200 bg-white px-3 py-2">
-                                      <p className="break-words text-xs text-slate-700">{itemStr}</p>
-                                    </div>
-                                  );
-                                })}
-                              </div>
-                            </div>
-                          ) : null}
-
-                          {turn.answer.missing?.length ? (
-                            <div>
-                              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Missing Data</p>
-                              <div className="flex flex-wrap gap-1.5">
-                                {turn.answer.missing.map((item, idx) => (
-                                  <Badge key={idx} label={item} variant="warning" size="xs" />
-                                ))}
-                              </div>
-                            </div>
-                          ) : null}
-
-                          <ReferenceLinks references={turn.answer.references} />
-
-                          {turn.answer.actions?.length ? (
-                            <div>
-                              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Suggested Actions</p>
-                              <div className="space-y-2">
-                                {turn.answer.actions.map((action, idx) => (
-                                  <div key={`${action.type}-${idx}`} className="rounded-lg border border-slate-200 bg-white p-3">
-                                    <div className="flex items-center justify-between gap-2">
-                                      <span className="text-sm font-semibold text-slate-800">{action.label}</span>
-                                      <Badge label={action.type} variant="info" size="xs" />
-                                    </div>
-                                    {action.payload ? (
-                                      <div className="mt-2">
-                                        <CodeBlock code={stringifyData(action.payload)} language="json" />
-                                      </div>
-                                    ) : null}
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-                          ) : null}
-
-                          {turn.answer.data ? (
-                            <div>
-                              <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Raw Data</p>
-                              <CodeBlock code={stringifyData(turn.answer.data)} language="json" />
-                            </div>
-                          ) : null}
-
-                          <div>
-                            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wide text-slate-500">Full Response</p>
-                            <CodeBlock code={stringifyData(turn.answer)} language="json" />
-                          </div>
-                        </div>
+                        <ResponseDetailsContent answer={turn.answer} />
                       </Accordion>
                     ) : null}
                   </div>
