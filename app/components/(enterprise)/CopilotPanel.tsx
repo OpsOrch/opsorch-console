@@ -4,8 +4,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CopilotAnswer, CopilotReferences } from "@/app/lib/types";
 import { useAsyncState } from "@/app/lib/hooks";
 import { Accordion, Field, Pill, Section, TextArea } from "@/app/lib/ui";
-import { ConfidenceBar } from "@/app/components/copilot/ConfidenceBar";
-import { ResponseDetailsContent } from "@/app/components/copilot/ResponseDetails";
+import { ConfidenceBar } from "@/app/components/(enterprise)/copilot/ConfidenceBar";
+import { ResponseDetailsContent } from "@/app/components/(enterprise)/copilot/ResponseDetails";
 import { parseJsonString, stringifyData } from "@/app/lib/utils";
 
 type CopilotTurn = {

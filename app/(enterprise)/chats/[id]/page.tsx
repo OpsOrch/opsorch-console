@@ -2,8 +2,10 @@
 
 import { useParams } from "next/navigation";
 import { AppShell } from "@/app/components/AppShell";
-import { CopilotPanel } from "@/app/components/CopilotPanel";
+import { CopilotPanel } from "@/app/components/(enterprise)/CopilotPanel";
 import { useMemo } from "react";
+import { isEnterprise } from "@/app/lib/edition";
+import { EnterpriseOnly } from "@/app/components/EnterpriseOnly";
 
 export default function ChatDetailPage() {
     const params = useParams<{ id?: string }>();
@@ -11,6 +13,14 @@ export default function ChatDetailPage() {
         const raw = params?.id;
         return Array.isArray(raw) ? raw[0] : raw;
     }, [params]);
+
+    if (!isEnterprise()) {
+        return (
+            <AppShell title="Chat Detail">
+                <EnterpriseOnly featureName="Chat Detail" />
+            </AppShell>
+        );
+    }
 
     return (
         <AppShell
