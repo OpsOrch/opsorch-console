@@ -13,13 +13,24 @@ The edition is controlled at build time via the `OPSORCH_EDITION` environment va
 
 ## Features
 
-- **Incidents**: Browse, search, and view incident details with timelines
-- **Logs**: Query and analyze logs across integrated providers
-- **Metrics**: Visualize and query metrics data
+- **Incidents**: Browse, search, and view incident details with timelines. Advanced filtering by query, status, severity, and scope
+- **Alerts**: View and search alerts from monitoring providers. Filter by status, severity, service, and more
+- **Logs**: Query and analyze logs across integrated providers with advanced search and filtering
+- **Metrics**: Visualize and query metrics data with customizable expressions and aggregations
 - **Services**: Explore service catalog and dependencies
 - **Tickets**: View and manage tickets from integrated ticketing systems
-- **Chat**: AI-powered assistance via OpsOrch Copilot for incident investigation, log analysis, and operational queries
+- **Chat**: AI-powered assistance via OpsOrch Copilot for incident investigation, log analysis, and operational queries. Copilot can generate smart references to filtered views with query parameters
 - **Settings**: Configure OpsOrch Core and Copilot endpoints
+
+### Query Capabilities
+
+All primary data views (Incidents, Alerts, Logs, Metrics) support:
+- **URL-based filtering**: Share filtered views via URL with query parameters
+- **Advanced search**: Free-text search across titles and descriptions
+- **Status/Severity filters**: Multi-select filtering with comma-separated values
+- **Scope filtering**: Filter by service, environment, and team
+- **Copilot integration**: AI can generate filtered views and include them as clickable references
+
 
 ## Architecture
 

@@ -7,6 +7,7 @@ import { AppShell } from "@/app/components/AppShell";
 import { LogsPanel } from "@/app/components/LogsPanel";
 import { MetricsPanel } from "@/app/components/MetricsPanel";
 import { TicketsPanel } from "@/app/components/TicketsPanel";
+import { AlertsPanel } from "@/app/components/AlertsPanel";
 import { queryServices } from "@/app/lib/services";
 import { queryIncidents } from "@/app/lib/incidents";
 import { Service, Incident } from "@/app/lib/types";
@@ -15,6 +16,7 @@ import { formatDate } from "@/app/lib/utils";
 
 const tabOrder = [
   { key: "incidents", label: "Incidents" },
+  { key: "alerts", label: "Alerts" },
   { key: "logs", label: "Logs" },
   { key: "metrics", label: "Metrics" },
   { key: "tickets", label: "Tickets" },
@@ -80,7 +82,7 @@ export default function ServiceDetailPage() {
     await withState("incidents", async () => {
       const scopePayload = { ...scope };
       if (!scopePayload.service && serviceSearchTerm) scopePayload.service = serviceSearchTerm;
-      const queried = await queryIncidents(scopePayload);
+      const queried = await queryIncidents({ scope: scopePayload });
       setIncidents(queried as Incident[]);
     });
   }, [scope, serviceId, serviceSearchTerm]);
@@ -208,6 +210,10 @@ export default function ServiceDetailPage() {
               )}
             </div>
           </div>
+        ) : null}
+
+        {activeTab === "alerts" ? (
+          <AlertsPanel initialQuery={{ scope }} readOnly={true} />
         ) : null}
 
         {activeTab === "logs" ? (

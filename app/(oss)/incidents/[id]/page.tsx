@@ -7,6 +7,7 @@ import { AppShell } from "@/app/components/AppShell";
 import { LogsPanel } from "@/app/components/LogsPanel";
 import { MetricsPanel } from "@/app/components/MetricsPanel";
 import { TicketsPanel } from "@/app/components/TicketsPanel";
+import { AlertsPanel } from "@/app/components/AlertsPanel";
 import { requestJSON } from "@/app/lib/api";
 import { Incident, TimelineEntry } from "@/app/lib/types";
 import { Field, Pill, TextArea, TextInput } from "@/app/lib/ui";
@@ -16,6 +17,7 @@ import { fetchIncident, fetchIncidentTimeline } from "@/app/lib/incidents";
 
 const tabOrder = [
   { key: "timeline", label: "Timeline" },
+  { key: "alerts", label: "Alerts" },
   { key: "logs", label: "Logs" },
   { key: "metrics", label: "Metrics" },
   { key: "tickets", label: "Tickets" },
@@ -263,6 +265,10 @@ export default function IncidentDetailPage() {
               </div>
             </div>
           </div>
+        ) : null}
+
+        {activeTab === "alerts" ? (
+          <AlertsPanel initialQuery={{ scope: deriveScope(incident) }} readOnly={true} />
         ) : null}
 
         {activeTab === "logs" ? (

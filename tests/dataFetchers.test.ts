@@ -33,7 +33,7 @@ test("queryIncidents includes scope only when present", async () => {
     assert.deepEqual(JSON.parse(String(init?.body)), { scope: { service: "svc-a" } });
     return { ok: true, text: async () => "[]" } as Response;
   });
-  await queryIncidents({ service: "svc-a" });
+  await queryIncidents({ scope: { service: "svc-a" } });
   fetchWithScope.mock.restore();
 
   const fetchWithoutScope = mock.method(globalThis, "fetch", async (input: RequestInfo | URL, init?: RequestInit) => {

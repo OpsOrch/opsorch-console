@@ -1,6 +1,6 @@
 import React from "react";
 import { CopilotReferences } from "@/app/lib/types";
-import { buildLogHref, buildMetricHref } from "@/app/lib/referenceBuilder";
+import { buildLogHref, buildMetricHref, buildAlertHref, buildIncidentHref } from "@/app/lib/referenceBuilder";
 
 export function ReferenceLinks({
     references,
@@ -12,9 +12,9 @@ export function ReferenceLinks({
         console.log('[ReferenceLinks] No references provided');
         return null;
     }
-    const { incidents, services, metrics, logs, tickets } = references;
-    console.log('[ReferenceLinks] Extracted:', { incidents, services, metrics, logs, tickets });
-    if (!incidents?.length && !services?.length && !metrics?.length && !logs?.length && !tickets?.length) {
+    const { incidents, alerts, services, metrics, logs, tickets } = references;
+    console.log('[ReferenceLinks] Extracted:', { incidents, alerts, services, metrics, logs, tickets });
+    if (!incidents?.length && !alerts?.length && !services?.length && !metrics?.length && !logs?.length && !tickets?.length) {
         console.log('[ReferenceLinks] All reference arrays are empty');
         return null;
     }
@@ -33,18 +33,45 @@ export function ReferenceLinks({
             {incidents?.length ? (
                 <div>
                     <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Incidents</p>
-                    {renderList(incidents.map((id) => (
-                        <a
-                            key={`inc-${id}`}
-                            href={`/incidents/${id}`}
-                            className="group inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 font-semibold text-rose-700 shadow-sm transition-all hover:border-rose-300 hover:bg-rose-100 hover:shadow"
-                        >
-                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                            Incident {id}
-                        </a>
-                    )))}
+                    {renderList(incidents.map((inc, idx) => {
+                        const isString = typeof inc === 'string';
+                        const href = isString ? `/incidents/${inc}` : buildIncidentHref(inc);
+                        const label = isString ? `Incident ${inc}` : inc.query || 'Incident Query';
+                        return (
+                            <a
+                                key={`inc-${idx}`}
+                                href={href}
+                                className="group inline-flex items-center gap-1.5 rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 font-semibold text-rose-700 shadow-sm transition-all hover:border-rose-300 hover:bg-rose-100 hover:shadow"
+                            >
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                </svg>
+                                {label}
+                            </a>
+                        );
+                    }))}
+                </div>
+            ) : null}
+            {alerts?.length ? (
+                <div>
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Alerts</p>
+                    {renderList(alerts.map((alert, idx) => {
+                        const isString = typeof alert === 'string';
+                        const href = isString ? `/alerts/${alert}` : buildAlertHref(alert);
+                        const label = isString ? alert : alert.query || 'Alert Query';
+                        return (
+                            <a
+                                key={`alert-${idx}`}
+                                href={href}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-1.5 font-semibold text-amber-700 shadow-sm transition-all hover:border-amber-300 hover:bg-amber-100 hover:shadow"
+                            >
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                </svg>
+                                {label}
+                            </a>
+                        );
+                    }))}
                 </div>
             ) : null}
             {services?.length ? (
@@ -53,7 +80,7 @@ export function ReferenceLinks({
                     {renderList(services.map((svc) => (
                         <a
                             key={`svc-${svc}`}
-                            href={`/services?name=${encodeURIComponent(svc)}`}
+                            href={`/services/${svc}`}
                             className="inline-flex items-center gap-1.5 rounded-lg border border-blue-200 bg-blue-50 px-3 py-1.5 font-semibold text-blue-700 shadow-sm transition-all hover:border-blue-300 hover:bg-blue-100 hover:shadow"
                         >
                             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">

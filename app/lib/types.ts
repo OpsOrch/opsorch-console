@@ -130,7 +130,8 @@ export type LogReference = {
 };
 
 export type CopilotReferences = {
-  incidents?: string[];
+  incidents?: (string | Partial<IncidentQuery>)[];
+  alerts?: (string | Partial<AlertQuery>)[];
   services?: string[];
   metrics?: MetricReference[];
   logs?: LogReference[];
@@ -185,4 +186,35 @@ export type ChatSearchResponse = {
   totalResults: number;
   returnedResults: number;
   results: ChatSearchResult[];
+};
+
+export type Alert = {
+  id: string;
+  title: string;
+  description?: string;
+  status: string;
+  severity: string;
+  service?: string;
+  createdAt: string;
+  updatedAt: string;
+  fields?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+};
+
+export type AlertQuery = {
+  query?: string;
+  statuses?: string[];
+  severities?: string[];
+  scope?: QueryScope;
+  limit?: number;
+  metadata?: Record<string, unknown>;
+};
+
+export type IncidentQuery = {
+  query?: string;
+  statuses?: string[];
+  severities?: string[];
+  scope?: QueryScope;
+  limit?: number;
+  metadata?: Record<string, unknown>;
 };

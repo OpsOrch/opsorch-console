@@ -1,5 +1,5 @@
-import { LogReference, MetricReference } from "./types";
-import { encodeLogExpression, encodeMetricExpression } from "./utils";
+import { LogReference, MetricReference, AlertQuery, IncidentQuery } from "./types";
+import { encodeLogExpression, encodeMetricExpression, encodeAlertQuery, encodeIncidentQuery } from "./utils";
 
 /**
  * Builds a URL href for a log reference with all query parameters
@@ -60,3 +60,46 @@ export function buildMetricHref(m: MetricReference): string {
   const query = params.toString();
   return query ? `/metrics?${query}` : "/metrics";
 }
+
+/**
+ * Builds a URL href for an alert query with all query parameters
+ */
+export function buildAlertHref(query: Partial<AlertQuery>): string {
+  const params = new URLSearchParams();
+
+  const encoded = encodeAlertQuery(query);
+  Object.entries(encoded).forEach(([key, value]) => {
+    params.set(key, value);
+  });
+
+  // Add scope if present
+  if (query.scope) {
+    const scopeStr = typeof query.scope === 'string' ? query.scope : JSON.stringify(query.scope);
+    params.set("scope", scopeStr);
+  }
+
+  const queryStr = params.toString();
+  return queryStr ? `/alerts?${queryStr}` : "/alerts";
+}
+
+/**
+ * Builds a URL href for an incident query with all query parameters
+ */
+export function buildIncidentHref(query: Partial<IncidentQuery>): string {
+  const params = new URLSearchParams();
+
+  const encoded = encodeIncidentQuery(query);
+  Object.entries(encoded).forEach(([key, value]) => {
+    params.set(key, value);
+  });
+
+  // Add scope if present
+  if (query.scope) {
+    const scopeStr = typeof query.scope === 'string' ? query.scope : JSON.stringify(query.scope);
+    params.set("scope", scopeStr);
+  }
+
+  const queryStr = params.toString();
+  return queryStr ? `/incidents?${queryStr}` : "/incidents";
+}
+

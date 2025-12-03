@@ -85,14 +85,15 @@ export default function TicketDetailPage() {
     if (!ticketId) return;
     await withState("incidents", async () => {
       try {
-        const res = await queryIncidents(Object.keys(scope).length ? scope : undefined);
+        const res = await queryIncidents(Object.keys(scope).length ? { scope } : undefined);
         setIncidents(res as Incident[]);
       } catch (err) {
         if (isNotFound(err)) {
+          // If the ticket is not found, we just set incidents to empty
           setIncidents([]);
-          return;
+        } else {
+          throw err;
         }
-        throw err;
       }
     });
   }, [scope, ticketId]);

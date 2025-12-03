@@ -16,6 +16,7 @@ const allNavItems: NavItem[] = [
   { href: "/", label: "Home" }, // Available in both editions
   { href: "/chats", label: "Chats", edition: "enterprise" },
   { href: "/incidents", label: "Incidents" },
+  { href: "/alerts", label: "Alerts" },
   { href: "/logs", label: "Logs" },
   { href: "/metrics", label: "Metrics" },
   { href: "/tickets", label: "Tickets" },
@@ -65,8 +66,8 @@ export function AppShell({
                   key={item.href}
                   href={item.href}
                   className={`flex items-center justify-between rounded-xl border px-3 py-2 transition ${active
-                      ? "border-[#55cfd0] bg-[#10333a] text-white shadow-sm"
-                      : "border-transparent bg-transparent text-slate-300 hover:border-[#23464d] hover:bg-[#10282f]"
+                    ? "border-[#55cfd0] bg-[#10333a] text-white shadow-sm"
+                    : "border-transparent bg-transparent text-slate-300 hover:border-[#23464d] hover:bg-[#10282f]"
                     }`}
                 >
                   <span className="font-semibold">{item.label}</span>

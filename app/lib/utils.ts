@@ -1,4 +1,4 @@
-import { LogExpression, MetricExpression, LogFilter, MetricFilter } from "./types";
+import { LogExpression, MetricExpression, LogFilter, MetricFilter, AlertQuery, IncidentQuery } from "./types";
 
 export function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -35,19 +35,19 @@ export function stringifyData(data: unknown) {
  */
 export function encodeLogExpression(expression: LogExpression): Record<string, string> {
   const params: Record<string, string> = {};
-  
+
   if (expression.search) {
     params.search = expression.search;
   }
-  
+
   if (expression.filters && expression.filters.length > 0) {
     params.filters = JSON.stringify(expression.filters);
   }
-  
+
   if (expression.severityIn && expression.severityIn.length > 0) {
     params.severityIn = JSON.stringify(expression.severityIn);
   }
-  
+
   return params;
 }
 
@@ -56,12 +56,12 @@ export function encodeLogExpression(expression: LogExpression): Record<string, s
  */
 export function decodeLogExpression(params: URLSearchParams): LogExpression {
   const expression: LogExpression = {};
-  
+
   const search = params.get('search');
   if (search) {
     expression.search = search;
   }
-  
+
   const filters = params.get('filters');
   if (filters) {
     try {
@@ -73,7 +73,7 @@ export function decodeLogExpression(params: URLSearchParams): LogExpression {
       // Ignore invalid JSON
     }
   }
-  
+
   const severityIn = params.get('severityIn');
   if (severityIn) {
     try {
@@ -85,7 +85,7 @@ export function decodeLogExpression(params: URLSearchParams): LogExpression {
       // Ignore invalid JSON
     }
   }
-  
+
   return expression;
 }
 
@@ -94,23 +94,23 @@ export function decodeLogExpression(params: URLSearchParams): LogExpression {
  */
 export function encodeMetricExpression(expression: MetricExpression): Record<string, string> {
   const params: Record<string, string> = {};
-  
+
   if (expression.metricName) {
     params.metricName = expression.metricName;
   }
-  
+
   if (expression.aggregation) {
     params.aggregation = expression.aggregation;
   }
-  
+
   if (expression.filters && expression.filters.length > 0) {
     params.filters = JSON.stringify(expression.filters);
   }
-  
+
   if (expression.groupBy && expression.groupBy.length > 0) {
     params.groupBy = JSON.stringify(expression.groupBy);
   }
-  
+
   return params;
 }
 
@@ -120,12 +120,12 @@ export function encodeMetricExpression(expression: MetricExpression): Record<str
 export function decodeMetricExpression(params: URLSearchParams): MetricExpression {
   const metricName = params.get('metricName') || 'up';
   const expression: MetricExpression = { metricName };
-  
+
   const aggregation = params.get('aggregation');
   if (aggregation) {
     expression.aggregation = aggregation;
   }
-  
+
   const filters = params.get('filters');
   if (filters) {
     try {
@@ -137,7 +137,7 @@ export function decodeMetricExpression(params: URLSearchParams): MetricExpressio
       // Ignore invalid JSON
     }
   }
-  
+
   const groupBy = params.get('groupBy');
   if (groupBy) {
     try {
@@ -149,6 +149,149 @@ export function decodeMetricExpression(params: URLSearchParams): MetricExpressio
       // Ignore invalid JSON
     }
   }
-  
+
   return expression;
 }
+
+/**
+ * Encodes an AlertQuery to URL parameters
+ */
+export function encodeAlertQuery(query: Partial<AlertQuery>): Record<string, string> {
+  const params: Record<string, string> = {};
+
+  if (query.query) {
+    params.query = query.query;
+  }
+
+  if (query.statuses && query.statuses.length > 0) {
+    params.statuses = JSON.stringify(query.statuses);
+  }
+
+  if (query.severities && query.severities.length > 0) {
+    params.severities = JSON.stringify(query.severities);
+  }
+
+  if (query.limit) {
+    params.limit = String(query.limit);
+  }
+
+  return params;
+}
+
+/**
+ * Decodes URL parameters to an AlertQuery
+ */
+export function decodeAlertQuery(params: URLSearchParams): Partial<AlertQuery> {
+  const query: Partial<AlertQuery> = {};
+
+  const queryStr = params.get('query');
+  if (queryStr) {
+    query.query = queryStr;
+  }
+
+  const statuses = params.get('statuses');
+  if (statuses) {
+    try {
+      const parsed = JSON.parse(statuses);
+      if (Array.isArray(parsed)) {
+        query.statuses = parsed as string[];
+      }
+    } catch {
+      // Ignore invalid JSON
+    }
+  }
+
+  const severities = params.get('severities');
+  if (severities) {
+    try {
+      const parsed = JSON.parse(severities);
+      if (Array.isArray(parsed)) {
+        query.severities = parsed as string[];
+      }
+    } catch {
+      // Ignore invalid JSON
+    }
+  }
+
+  const limit = params.get('limit');
+  if (limit) {
+    const limitNum = Number(limit);
+    if (!isNaN(limitNum)) {
+      query.limit = limitNum;
+    }
+  }
+
+  return query;
+}
+
+/**
+ * Encodes an IncidentQuery to URL parameters
+ */
+export function encodeIncidentQuery(query: Partial<IncidentQuery>): Record<string, string> {
+  const params: Record<string, string> = {};
+
+  if (query.query) {
+    params.query = query.query;
+  }
+
+  if (query.statuses && query.statuses.length > 0) {
+    params.statuses = JSON.stringify(query.statuses);
+  }
+
+  if (query.severities && query.severities.length > 0) {
+    params.severities = JSON.stringify(query.severities);
+  }
+
+  if (query.limit) {
+    params.limit = String(query.limit);
+  }
+
+  return params;
+}
+
+/**
+ * Decodes URL parameters to an IncidentQuery
+ */
+export function decodeIncidentQuery(params: URLSearchParams): Partial<IncidentQuery> {
+  const query: Partial<IncidentQuery> = {};
+
+  const queryStr = params.get('query');
+  if (queryStr) {
+    query.query = queryStr;
+  }
+
+  const statuses = params.get('statuses');
+  if (statuses) {
+    try {
+      const parsed = JSON.parse(statuses);
+      if (Array.isArray(parsed)) {
+        query.statuses = parsed as string[];
+      }
+    } catch {
+      // Ignore invalid JSON
+    }
+  }
+
+  const severities = params.get('severities');
+  if (severities) {
+    try {
+      const parsed = JSON.parse(severities);
+      if (Array.isArray(parsed)) {
+        query.severities = parsed as string[];
+      }
+    } catch {
+      // Ignore invalid JSON
+    }
+  }
+
+  const limit = params.get('limit');
+  if (limit) {
+    const limitNum = Number(limit);
+    if (!isNaN(limitNum)) {
+      query.limit = limitNum;
+    }
+  }
+
+  return query;
+}
+
