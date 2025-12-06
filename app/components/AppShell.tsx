@@ -81,7 +81,7 @@ export function AppShell({
         <main className="flex-1 pb-6">
           <div className="flex flex-col gap-4 rounded-3xl border border-[#1f3c43] bg-white/90 p-6 text-slate-900 shadow-xl backdrop-blur">
             <div className="flex flex-col gap-2">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#3d8f92]">{hero || "Ops sources"}</p>
+              <div className="text-[11px] font-semibold uppercase tracking-[0.2em] text-[#3d8f92]">{hero || "Ops sources"}</div>
               <h1 className="text-2xl font-semibold text-slate-900">{title}</h1>
               {description ? <p className="text-sm text-slate-600">{description}</p> : null}
             </div>
