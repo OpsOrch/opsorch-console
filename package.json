@@ -1,8 +1,18 @@
 {
   "name": "opsorch-console",
   "version": "0.1.0",
-  "private": true,
   "license": "SEE LICENSE IN LICENSE",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/OpsOrch/opsorch-console.git"
+  },
+  "bugs": {
+    "url": "https://github.com/OpsOrch/opsorch-console/issues"
+  },
+  "homepage": "https://github.com/OpsOrch/opsorch-console#readme",
+  "description": "OpsOrch Console is the operator-focused web UI for OpsOrch. It provides a unified interface for browsing and managing incidents, logs, metrics, services, tickets, and AI-powered chat assistance.",
+  "keywords": ["opsorch", "console", "ui", "web", "incidents", "logs", "metrics", "observability", "operations"],
+  "author": "OpsOrch",
   "scripts": {
     "dev": "next dev",
     "dev:oss": "NEXT_PUBLIC_OPSORCH_EDITION=oss next dev",

@@ -1,5 +1,9 @@
 # OpsOrch Console
 
+[![Version](https://img.shields.io/github/v/release/OpsOrch/opsorch-console)](https://github.com/OpsOrch/opsorch-console/releases)
+[![License](https://img.shields.io/github/license/OpsOrch/opsorch-console)](https://github.com/OpsOrch/opsorch-console/blob/main/LICENSE)
+[![CI](https://github.com/OpsOrch/opsorch-console/workflows/CI/badge.svg)](https://github.com/OpsOrch/opsorch-console/actions)
+
 OpsOrch Console is the operator-focused web UI for OpsOrch. It provides a unified interface for browsing and managing incidents, logs, metrics, services, tickets, and AI-powered chat assistance through OpsOrch Copilot.
 
 ## Editions
@@ -113,6 +117,88 @@ Run the test suite:
 npm test
 ```
 
+### Docker
+
+Docker images are automatically built and published to GitHub Container Registry with each release. Both OSS and Enterprise editions are available as separate Docker images.
+
+#### OSS Edition
+
+```bash
+# Pull the latest OSS version
+docker pull ghcr.io/opsorch/opsorch-console:latest-oss
+
+# Run OSS edition with environment variables
+docker run -d \
+  --name opsorch-console-oss \
+  -p 3000:3000 \
+  -e NEXT_PUBLIC_OPSORCH_CORE_URL=http://localhost:8080 \
+  -e NEXT_PUBLIC_OPSORCH_EDITION=oss \
+  ghcr.io/opsorch/opsorch-console:latest-oss
+
+# Or run a specific OSS version
+docker pull ghcr.io/opsorch/opsorch-console:v1.0.0-oss
+```
+
+#### Enterprise Edition
+
+```bash
+# Pull the latest Enterprise version
+docker pull ghcr.io/opsorch/opsorch-console:latest-enterprise
+
+# Run Enterprise edition with environment variables
+docker run -d \
+  --name opsorch-console-enterprise \
+  -p 3000:3000 \
+  -e NEXT_PUBLIC_OPSORCH_CORE_URL=http://localhost:8080 \
+  -e NEXT_PUBLIC_COPILOT_URL=http://localhost:6060 \
+  -e NEXT_PUBLIC_OPSORCH_EDITION=enterprise \
+  ghcr.io/opsorch/opsorch-console:latest-enterprise
+
+# Or run a specific Enterprise version
+docker pull ghcr.io/opsorch/opsorch-console:v1.0.0-enterprise
+```
+
+#### Docker Compose
+
+For easier deployment, you can use Docker Compose:
+
+```yaml
+# docker-compose.yml
+version: '3.8'
+services:
+  opsorch-console-oss:
+    image: ghcr.io/opsorch/opsorch-console:latest-oss
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_OPSORCH_CORE_URL=http://localhost:8080
+      - NEXT_PUBLIC_OPSORCH_EDITION=oss
+    restart: unless-stopped
+
+  # Uncomment for Enterprise edition
+  # opsorch-console-enterprise:
+  #   image: ghcr.io/opsorch/opsorch-console:latest-enterprise
+  #   ports:
+  #     - "3001:3000"
+  #   environment:
+  #     - NEXT_PUBLIC_OPSORCH_CORE_URL=http://localhost:8080
+  #     - NEXT_PUBLIC_COPILOT_URL=http://localhost:6060
+  #     - NEXT_PUBLIC_OPSORCH_EDITION=enterprise
+  #   restart: unless-stopped
+```
+
+```bash
+docker-compose up -d
+```
+
+**Available Docker tags:**
+- `latest-oss` - Latest OSS Edition release
+- `latest-enterprise` - Latest Enterprise Edition release  
+- `v{version}-oss` - Specific OSS version tags (e.g., `v1.0.0-oss`)
+- `v{version}-enterprise` - Specific Enterprise version tags (e.g., `v1.0.0-enterprise`)
+
+The Docker images run as a non-root user and expose port 3000. Both editions support the same environment variables for configuration.
+
 ## Project Structure
 
 - `app/` - Next.js app router pages and layouts
@@ -169,6 +255,57 @@ app/
 ```
 
 Files in `(enterprise)` directories are proprietary and not included in open-source distributions.
+
+## Releases
+
+This project uses automated releases via GitHub Actions. Releases are triggered manually and include:
+
+- **Semantic versioning** with configurable version bumps (major, minor, patch)
+- **Edition selection** (OSS, Enterprise, or both)
+- **Automated testing** and linting before release
+- **Git tagging** with proper version format (`v{major}.{minor}.{patch}`)
+- **Changelog generation** from commit history
+- **Docker image publishing** to GitHub Container Registry (separate images for OSS and Enterprise)
+- **GitHub releases** with release notes
+
+### Creating a Release
+
+Maintainers can create a new release by:
+
+1. Go to the [Actions tab](https://github.com/OpsOrch/opsorch-console/actions)
+2. Select the "Release" workflow
+3. Click "Run workflow"
+4. Choose the version bump type:
+   - **patch** - Bug fixes and minor updates (1.0.0 → 1.0.1)
+   - **minor** - New features, backward compatible (1.0.0 → 1.1.0)  
+   - **major** - Breaking changes (1.0.0 → 2.0.0)
+5. Choose the edition to build:
+   - **oss** - Build only OSS Edition Docker image
+   - **enterprise** - Build only Enterprise Edition Docker image
+   - **both** - Build both OSS and Enterprise Docker images
+6. Click "Run workflow"
+
+The release process will automatically:
+- Run all tests and linting
+- Calculate the next version number
+- Create and push a git tag
+- Build and publish Docker images for selected editions and multiple architectures (linux/amd64, linux/arm64)
+- Create a GitHub release with changelog
+
+### Installation Options
+
+**Docker (OSS Edition):**
+```bash
+docker pull ghcr.io/opsorch/opsorch-console:latest-oss
+```
+
+**Docker (Enterprise Edition):**
+```bash
+docker pull ghcr.io/opsorch/opsorch-console:latest-enterprise
+```
+
+**GitHub Releases:**
+Download release artifacts from the [Releases page](https://github.com/OpsOrch/opsorch-console/releases).
 
 ## Learn More
 
