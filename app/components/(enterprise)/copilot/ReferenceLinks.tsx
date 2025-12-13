@@ -1,6 +1,6 @@
 import React from "react";
-import { CopilotReferences } from "@/app/lib/types";
-import { buildLogHref, buildMetricHref, buildAlertHref, buildIncidentHref } from "@/app/lib/referenceBuilder";
+import { CopilotReferences, DeploymentQuery, DeploymentReference } from "@/app/lib/types";
+import { buildLogHref, buildMetricHref, buildAlertHref, buildIncidentHref, buildDeploymentHref } from "@/app/lib/referenceBuilder";
 
 export function ReferenceLinks({
     references,
@@ -12,9 +12,9 @@ export function ReferenceLinks({
         console.log('[ReferenceLinks] No references provided');
         return null;
     }
-    const { incidents, alerts, services, metrics, logs, tickets } = references;
-    console.log('[ReferenceLinks] Extracted:', { incidents, alerts, services, metrics, logs, tickets });
-    if (!incidents?.length && !alerts?.length && !services?.length && !metrics?.length && !logs?.length && !tickets?.length) {
+    const { incidents, alerts, services, metrics, logs, tickets, deployments } = references;
+    console.log('[ReferenceLinks] Extracted:', { incidents, alerts, services, metrics, logs, tickets, deployments });
+    if (!incidents?.length && !alerts?.length && !services?.length && !metrics?.length && !logs?.length && !tickets?.length && !deployments?.length) {
         console.log('[ReferenceLinks] All reference arrays are empty');
         return null;
     }
@@ -67,6 +67,47 @@ export function ReferenceLinks({
                             >
                                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                                </svg>
+                                {label}
+                            </a>
+                        );
+                    }))}
+                </div>
+            ) : null}
+            {deployments?.length ? (
+                <div>
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Deployments</p>
+                    {renderList(deployments.map((deployment, idx) => {
+                        const isString = typeof deployment === 'string';
+                        let href: string;
+                        let label: string;
+
+                        if (isString) {
+                            // String deployment ID
+                            href = buildDeploymentHref(deployment);
+                            label = `Deployment ${deployment}`;
+                        } else if ('deploymentId' in deployment && deployment.deploymentId) {
+                            // DeploymentReference with ID
+                            href = buildDeploymentHref(deployment);
+                            label = `Deployment ${deployment.deploymentId}`;
+                        } else if ('query' in deployment && deployment.query && typeof deployment.query === 'object') {
+                            // DeploymentReference with query object
+                            href = buildDeploymentHref(deployment as DeploymentReference);
+                            label = deployment.query.query || 'Deployment Query';
+                        } else {
+                            // Partial DeploymentQuery (treat as query object)
+                            href = buildDeploymentHref({ query: deployment as DeploymentQuery });
+                            label = (deployment as DeploymentQuery).query || 'Deployment Query';
+                        }
+
+                        return (
+                            <a
+                                key={`deployment-${idx}`}
+                                href={href}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50 px-3 py-1.5 font-semibold text-indigo-700 shadow-sm transition-all hover:border-indigo-300 hover:bg-indigo-100 hover:shadow"
+                            >
+                                <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
                                 {label}
                             </a>

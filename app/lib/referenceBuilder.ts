@@ -1,5 +1,5 @@
-import { LogReference, MetricReference, AlertQuery, IncidentQuery } from "./types";
-import { encodeLogExpression, encodeMetricExpression, encodeAlertQuery, encodeIncidentQuery } from "./utils";
+import { LogReference, MetricReference, AlertQuery, IncidentQuery, DeploymentReference } from "./types";
+import { encodeLogExpression, encodeMetricExpression, encodeAlertQuery, encodeIncidentQuery, encodeDeploymentQuery } from "./utils";
 
 /**
  * Builds a URL href for a log reference with all query parameters
@@ -103,3 +103,45 @@ export function buildIncidentHref(query: Partial<IncidentQuery>): string {
   return queryStr ? `/incidents?${queryStr}` : "/incidents";
 }
 
+/**
+ * Builds a URL href for a deployment reference with all query parameters
+ */
+export function buildDeploymentHref(reference: DeploymentReference | string): string {
+  // Handle null/undefined references
+  if (!reference) {
+    return "/deployments";
+  }
+
+  // Handle string deployment ID
+  if (typeof reference === 'string') {
+    // Handle empty strings
+    if (!reference.trim()) {
+      return "/deployments";
+    }
+    return `/deployments/${reference}`;
+  }
+
+  // Handle deployment ID in reference object
+  if (reference.deploymentId) {
+    return `/deployments/${reference.deploymentId}`;
+  }
+
+  // Handle query-based reference
+  const params = new URLSearchParams();
+
+  if (reference.query) {
+    const encoded = encodeDeploymentQuery(reference.query);
+    Object.entries(encoded).forEach(([key, value]) => {
+      params.set(key, value);
+    });
+
+    // Add scope if present
+    if (reference.query.scope) {
+      const scopeStr = typeof reference.query.scope === 'string' ? reference.query.scope : JSON.stringify(reference.query.scope);
+      params.set("scope", scopeStr);
+    }
+  }
+
+  const queryStr = params.toString();
+  return queryStr ? `/deployments?${queryStr}` : "/deployments";
+}

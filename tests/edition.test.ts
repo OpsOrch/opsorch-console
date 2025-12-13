@@ -7,7 +7,7 @@ import { test } from "node:test";
 import * as assert from "node:assert";
 
 // Import the edition module to test
-import { EDITION, isOSS, isEnterprise } from "../app/lib/edition.ts";
+import { EDITION, isOSS, isEnterprise } from "../app/lib/edition.js";
 
 /**
  * Test 1: Edition variable defaults to OSS

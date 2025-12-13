@@ -109,6 +109,20 @@ export type Service = {
   metadata?: Record<string, unknown>;
 };
 
+export type Deployment = {
+  id: string;
+  service?: string;
+  environment?: string;
+  version?: string;
+  status: string;
+  startedAt: string;
+  finishedAt?: string;
+  url?: string;
+  actor?: Record<string, unknown>;
+  fields?: Record<string, unknown>;
+  metadata?: Record<string, unknown>;
+};
+
 export type CopilotLink = {
   label: string;
   url: string;
@@ -136,6 +150,7 @@ export type CopilotReferences = {
   metrics?: MetricReference[];
   logs?: LogReference[];
   tickets?: string[];
+  deployments?: (string | DeploymentReference | Partial<DeploymentQuery>)[];
 };
 
 export type CopilotAnswer = {
@@ -217,4 +232,18 @@ export type IncidentQuery = {
   scope?: QueryScope;
   limit?: number;
   metadata?: Record<string, unknown>;
+};
+
+export type DeploymentQuery = {
+  query?: string;
+  statuses?: string[];
+  versions?: string[];
+  scope?: QueryScope;
+  limit?: number;
+  metadata?: Record<string, unknown>;
+};
+
+export type DeploymentReference = {
+  query?: DeploymentQuery;
+  deploymentId?: string;
 };

@@ -55,13 +55,33 @@ export function parseScope(value: unknown): QueryScope | undefined {
     return undefined;
   }
   if (typeof value === "string") {
+    // Try JSON parsing first
     try {
       const parsed = JSON.parse(value);
       if (typeof parsed === "object" && parsed !== null) {
         return parsed as QueryScope;
       }
     } catch {
-      // ignore invalid json
+      // ignore invalid json, try key:value format
+    }
+    
+    // Parse key:value,key:value format (e.g., "service:svc-checkout,environment:staging")
+    try {
+      const scope: QueryScope = {};
+      const pairs = value.split(',');
+      for (const pair of pairs) {
+        const [key, val] = pair.split(':');
+        if (key && val) {
+          const trimmedKey = key.trim();
+          const trimmedVal = val.trim();
+          if (trimmedKey === 'service') scope.service = trimmedVal;
+          else if (trimmedKey === 'environment') scope.environment = trimmedVal;
+          else if (trimmedKey === 'team') scope.team = trimmedVal;
+        }
+      }
+      if (scope.service || scope.environment || scope.team) return scope;
+    } catch {
+      // ignore parsing errors
     }
   }
   return undefined;
@@ -69,7 +89,14 @@ export function parseScope(value: unknown): QueryScope | undefined {
 
 export function serializeScope(scope?: QueryScope): string {
   if (!scope) return "";
-  return JSON.stringify(scope);
+  
+  // Use user-friendly key:value format for URLs
+  const parts: string[] = [];
+  if (scope.service) parts.push(`service:${scope.service}`);
+  if (scope.environment) parts.push(`environment:${scope.environment}`);
+  if (scope.team) parts.push(`team:${scope.team}`);
+  
+  return parts.length > 0 ? parts.join(',') : "";
 }
 
 export function mergeScopes(...scopes: (QueryScope | undefined)[]): QueryScope {

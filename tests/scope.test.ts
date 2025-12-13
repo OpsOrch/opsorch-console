@@ -30,12 +30,39 @@ test("parseScope returns object if at least one key is known", () => {
   assert.deepStrictEqual(parseScope({ service: "foo", other: "bar" }), { service: "foo", other: "bar" });
 });
 
+test("parseScope parses key:value format", () => {
+  assert.deepStrictEqual(parseScope("service:foo"), { service: "foo" });
+  assert.deepStrictEqual(parseScope("service:foo,environment:prod"), { service: "foo", environment: "prod" });
+  assert.deepStrictEqual(parseScope("service:foo,environment:prod,team:platform"), { 
+    service: "foo", 
+    environment: "prod", 
+    team: "platform" 
+  });
+});
+
+test("parseScope handles whitespace in key:value format", () => {
+  assert.deepStrictEqual(parseScope(" service : foo , environment : prod "), { service: "foo", environment: "prod" });
+});
+
+test("parseScope ignores unknown keys in key:value format", () => {
+  assert.deepStrictEqual(parseScope("service:foo,unknown:bar,environment:prod"), { service: "foo", environment: "prod" });
+});
+
+test("parseScope returns undefined for malformed key:value format", () => {
+  assert.strictEqual(parseScope("service"), undefined);
+  assert.strictEqual(parseScope("service:"), undefined);
+  assert.strictEqual(parseScope(":foo"), undefined);
+  assert.strictEqual(parseScope("unknown:bar"), undefined);
+});
+
 test("serializeScope returns empty string for undefined", () => {
   assert.strictEqual(serializeScope(undefined), "");
 });
 
-test("serializeScope serializes object", () => {
-  assert.strictEqual(serializeScope({ service: "foo" }), '{"service":"foo"}');
+test("serializeScope serializes object to key:value format", () => {
+  assert.strictEqual(serializeScope({ service: "foo" }), "service:foo");
+  assert.strictEqual(serializeScope({ service: "foo", environment: "prod" }), "service:foo,environment:prod");
+  assert.strictEqual(serializeScope({ service: "foo", environment: "prod", team: "platform" }), "service:foo,environment:prod,team:platform");
 });
 
 test("mergeScopes merges multiple scopes", () => {

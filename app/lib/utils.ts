@@ -1,4 +1,4 @@
-import { LogExpression, MetricExpression, LogFilter, MetricFilter, AlertQuery, IncidentQuery } from "./types";
+import { LogExpression, MetricExpression, LogFilter, MetricFilter, AlertQuery, IncidentQuery, DeploymentQuery } from "./types";
 
 export function formatDate(value?: string | null) {
   if (!value) return "-";
@@ -278,6 +278,77 @@ export function decodeIncidentQuery(params: URLSearchParams): Partial<IncidentQu
       const parsed = JSON.parse(severities);
       if (Array.isArray(parsed)) {
         query.severities = parsed as string[];
+      }
+    } catch {
+      // Ignore invalid JSON
+    }
+  }
+
+  const limit = params.get('limit');
+  if (limit) {
+    const limitNum = Number(limit);
+    if (!isNaN(limitNum)) {
+      query.limit = limitNum;
+    }
+  }
+
+  return query;
+}
+
+/**
+ * Encodes a DeploymentQuery to URL parameters
+ */
+export function encodeDeploymentQuery(query: Partial<DeploymentQuery>): Record<string, string> {
+  const params: Record<string, string> = {};
+
+  if (query.query) {
+    params.query = query.query;
+  }
+
+  if (query.statuses && query.statuses.length > 0) {
+    params.statuses = JSON.stringify(query.statuses);
+  }
+
+  if (query.versions && query.versions.length > 0) {
+    params.versions = JSON.stringify(query.versions);
+  }
+
+  if (query.limit) {
+    params.limit = String(query.limit);
+  }
+
+  return params;
+}
+
+/**
+ * Decodes URL parameters to a DeploymentQuery
+ */
+export function decodeDeploymentQuery(params: URLSearchParams): Partial<DeploymentQuery> {
+  const query: Partial<DeploymentQuery> = {};
+
+  const queryStr = params.get('query');
+  if (queryStr) {
+    query.query = queryStr;
+  }
+
+  const statuses = params.get('statuses');
+  if (statuses) {
+    try {
+      const parsed = JSON.parse(statuses);
+      if (Array.isArray(parsed)) {
+        query.statuses = parsed as string[];
+      }
+    } catch {
+      // Ignore invalid JSON
+    }
+  }
+
+  const versions = params.get('versions');
+  if (versions) {
+    try {
+      const parsed = JSON.parse(versions);
+      if (Array.isArray(parsed)) {
+        query.versions = parsed as string[];
       }
     } catch {
       // Ignore invalid JSON
