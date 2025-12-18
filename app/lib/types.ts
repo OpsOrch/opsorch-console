@@ -109,6 +109,31 @@ export type Service = {
   metadata?: Record<string, unknown>;
 };
 
+export type Team = {
+  id: string;
+  name: string;
+  parent?: string;
+  tags?: Record<string, string>;
+  metadata?: Record<string, unknown>;
+};
+
+export type TeamMember = {
+  id: string;
+  name: string;
+  email: string;
+  handle: string;
+  role: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type TeamQuery = {
+  name?: string;
+  tags?: Record<string, string>;
+  scope?: QueryScope;
+  limit?: number;
+  metadata?: Record<string, unknown>;
+};
+
 export type Deployment = {
   id: string;
   service?: string;
@@ -151,6 +176,7 @@ export type CopilotReferences = {
   logs?: LogReference[];
   tickets?: string[];
   deployments?: (string | DeploymentReference | Partial<DeploymentQuery>)[];
+  teams?: string[];
 };
 
 export type CopilotAnswer = {

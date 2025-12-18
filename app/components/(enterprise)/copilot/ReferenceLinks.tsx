@@ -12,9 +12,9 @@ export function ReferenceLinks({
         console.log('[ReferenceLinks] No references provided');
         return null;
     }
-    const { incidents, alerts, services, metrics, logs, tickets, deployments } = references;
-    console.log('[ReferenceLinks] Extracted:', { incidents, alerts, services, metrics, logs, tickets, deployments });
-    if (!incidents?.length && !alerts?.length && !services?.length && !metrics?.length && !logs?.length && !tickets?.length && !deployments?.length) {
+    const { incidents, alerts, services, metrics, logs, tickets, deployments, teams } = references;
+    console.log('[ReferenceLinks] Extracted:', { incidents, alerts, services, metrics, logs, tickets, deployments, teams });
+    if (!incidents?.length && !alerts?.length && !services?.length && !metrics?.length && !logs?.length && !tickets?.length && !deployments?.length && !teams?.length) {
         console.log('[ReferenceLinks] All reference arrays are empty');
         return null;
     }
@@ -128,6 +128,23 @@ export function ReferenceLinks({
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
                             </svg>
                             {svc}
+                        </a>
+                    )))}
+                </div>
+            ) : null}
+            {teams?.length ? (
+                <div>
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Teams</p>
+                    {renderList(teams.map((team: string) => (
+                        <a
+                            key={`team-${team}`}
+                            href={`/teams/${team}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 font-semibold text-green-700 shadow-sm transition-all hover:border-green-300 hover:bg-green-100 hover:shadow"
+                        >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                            {team}
                         </a>
                     )))}
                 </div>

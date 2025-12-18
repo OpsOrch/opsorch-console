@@ -175,45 +175,47 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
         error={ticketState.error}
       />
 
-      <div className="grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm">
-        <div className="grid grid-cols-[2fr_auto] items-end gap-2">
+      {!readOnly && (
+        <div className="grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm">
+          <div className="grid grid-cols-[2fr_auto] items-end gap-2">
+            <Field
+              label="Search tickets (title or description)"
+              input={
+                <TextInput
+                  value={searchText}
+                  onChange={setSearchText}
+                  placeholder="login error, outage, customer request"
+                />
+              }
+            />
+            <button
+              type="button"
+              onClick={runSearch}
+              className="h-fit rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-semibold text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+            >
+              Search
+            </button>
+          </div>
+          <div className="grid gap-2 md:grid-cols-3">
+            <Field
+              label="Statuses"
+              input={<TextInput value={searchStatuses} onChange={setSearchStatuses} placeholder="open, acknowledged" />}
+            />
+            <Field
+              label="Assignee"
+              input={<TextInput value={searchAssignee} onChange={setSearchAssignee} placeholder="alice" />}
+            />
+            <Field
+              label="Reporter"
+              input={<TextInput value={searchReporter} onChange={setSearchReporter} placeholder="bob" />}
+            />
+          </div>
           <Field
-            label="Search tickets (title or description)"
-            input={
-              <TextInput
-                value={searchText}
-                onChange={setSearchText}
-                placeholder="login error, outage, customer request"
-              />
-            }
+            label="Limit"
+            input={<TextInput value={searchLimit} onChange={setSearchLimit} type="number" placeholder="25" />}
           />
-          <button
-            type="button"
-            onClick={runSearch}
-            className="h-fit rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-semibold text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
-          >
-            Search
-          </button>
         </div>
-        <div className="grid gap-2 md:grid-cols-3">
-          <Field
-            label="Statuses"
-            input={<TextInput value={searchStatuses} onChange={setSearchStatuses} placeholder="open, acknowledged" />}
-          />
-          <Field
-            label="Assignee"
-            input={<TextInput value={searchAssignee} onChange={setSearchAssignee} placeholder="alice" />}
-          />
-          <Field
-            label="Reporter"
-            input={<TextInput value={searchReporter} onChange={setSearchReporter} placeholder="bob" />}
-          />
-        </div>
-        <Field
-          label="Limit"
-          input={<TextInput value={searchLimit} onChange={setSearchLimit} type="number" placeholder="25" />}
-        />
-      </div>
+      )}
 
       <div className={readOnly ? "grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm" : "grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm"}>
         <div className="flex flex-col gap-2 max-h-52 overflow-y-auto">

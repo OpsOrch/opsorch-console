@@ -22,6 +22,7 @@ const allNavItems: NavItem[] = [
   { href: "/deployments", label: "Deployments" },
   { href: "/tickets", label: "Tickets" },
   { href: "/services", label: "Services" },
+  { href: "/teams", label: "Teams" },
   { href: "/settings", label: "Settings" },
 ];
 
