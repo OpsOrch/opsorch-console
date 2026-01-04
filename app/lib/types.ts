@@ -4,6 +4,7 @@ export type Incident = {
   status: string;
   severity: string;
   service?: string;
+  url?: string;
   createdAt: string;
   updatedAt: string;
   fields?: Record<string, unknown>;
@@ -27,6 +28,7 @@ export type LogEntry = {
   message: LogMessage;
   severity?: string;
   service?: string;
+  url?: string;
   labels?: Record<string, string>;
   fields?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
@@ -37,6 +39,7 @@ export type MetricSeries = {
   service?: string;
   labels?: Record<string, unknown>;
   points: { timestamp: string; value: number }[];
+  url?: string;
   metadata?: Record<string, unknown>;
 };
 
@@ -46,6 +49,7 @@ export type MetricDescriptor = {
   description: string;
   labels?: string[];
   unit?: string;
+  url?: string;
   metadata?: Record<string, unknown>;
 };
 
@@ -88,6 +92,7 @@ export type Ticket = {
   status: string;
   assignees?: string[];
   reporter?: string;
+  url?: string;
   createdAt: string;
   updatedAt: string;
   fields?: Record<string, unknown>;
@@ -99,12 +104,14 @@ export type MessageResult = {
   channel: string;
   provider: string;
   sentAt: string;
+  url?: string;
   metadata?: Record<string, unknown>;
 };
 
 export type Service = {
   id: string;
   name: string;
+  url?: string;
   tags?: Record<string, string>;
   metadata?: Record<string, unknown>;
 };
@@ -113,6 +120,7 @@ export type Team = {
   id: string;
   name: string;
   parent?: string;
+  url?: string;
   tags?: Record<string, string>;
   metadata?: Record<string, unknown>;
 };
@@ -236,6 +244,7 @@ export type Alert = {
   status: string;
   severity: string;
   service?: string;
+  url?: string;
   createdAt: string;
   updatedAt: string;
   fields?: Record<string, unknown>;

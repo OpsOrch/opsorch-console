@@ -27,14 +27,6 @@ type TabKey = (typeof tabOrder)[number]["key"];
 
 type ErrorMap = Record<string, string>;
 
-const formatJson = (value: unknown) => {
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return String(value);
-  }
-};
-
 
 export default function ServiceDetailPage() {
   const params = useParams<{ id?: string }>();
@@ -98,8 +90,8 @@ export default function ServiceDetailPage() {
 
   const hero = service ? (
     <div className="flex items-center gap-3">
-      <Pill label={service.id} />
-      {service.tags ? <Pill label={`${Object.keys(service.tags).length} tags`} /> : null}
+      {service.tags?.status && <Pill label={service.tags.status} tone={service.tags.status === "healthy" ? "success" : service.tags.status === "degraded" ? "warn" : "error"} />}
+      <span className="text-xs uppercase tracking-[0.2em] text-[#3d8f92]">{service.name}</span>
     </div>
   ) : (
     "Service"
@@ -116,13 +108,29 @@ export default function ServiceDetailPage() {
           <Link href="/services" className="text-xs font-semibold text-[#0b1517] underline-offset-4 hover:underline">
             Back to all services
           </Link>
-          {service?.tags ? (
-            <span className="text-xs text-slate-600">
-              Tags: {Object.entries(service.tags).map(([k, v]) => `${k}=${v}`).join(", ")}
-            </span>
-          ) : (
-            <span className="text-xs text-slate-600">No tags provided</span>
-          )}
+          <Pill label={`svc:${service?.name || serviceId}`} />
+          {service?.tags?.status && <Pill label={service.tags.status} tone={service.tags.status === "healthy" ? "success" : service.tags.status === "degraded" ? "warn" : "error"} />}
+          {service?.tags?.environment && <Pill label={`env:${service.tags.environment}`} />}
+          {service?.tags?.team && <Pill label={`team:${service.tags.team}`} />}
+          {service?.tags && Object.entries(service.tags)
+            .filter(([k]) => !['status', 'environment', 'env', 'team'].includes(k))
+            .map(([k, v]) => (
+              <Pill key={k} label={`${k}:${v}`} />
+            ))
+          }
+          {service?.url ? (
+            <a
+              href={service.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-lg border border-[#8fdede] bg-white px-2 py-1 text-xs font-medium text-[#0f1a1d] transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+            >
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              View service
+            </a>
+          ) : null}
           {errors.service ? <Pill label={errors.service} tone="error" /> : null}
           <div className="ml-auto flex items-center gap-2 text-xs text-slate-600">
             <button
@@ -138,28 +146,35 @@ export default function ServiceDetailPage() {
           </div>
         </div>
 
-        <div className="grid gap-3 rounded-2xl border border-slate-200 bg-white/80 p-4 text-sm text-slate-800">
-          <div>
-            <p className="text-[11px] uppercase tracking-wide text-slate-500">Service</p>
-            <p className="font-semibold text-slate-900">{scope.service || serviceId}</p>
+        {service ? (
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h3 className="mb-2 text-sm font-semibold text-slate-900">Service Details</h3>
+            <div className="space-y-3">
+              <div>
+                <span className="text-xs font-medium uppercase text-slate-500">Name</span>
+                <p className="text-slate-700">{service.name}</p>
+              </div>
+              {service.tags && Object.keys(service.tags).length > 0 ? (
+                <div>
+                  <span className="text-xs font-medium uppercase text-slate-500">Tags</span>
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {Object.entries(service.tags).map(([k, v]) => (
+                      <Pill key={k} label={`${k}:${v}`} />
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+              {service.metadata && Object.keys(service.metadata).length > 0 ? (
+                <div>
+                  <span className="text-xs font-medium uppercase text-slate-500">Metadata</span>
+                  <pre className="mt-1 overflow-x-auto rounded-lg bg-slate-50 p-4 text-xs text-slate-700">
+                    {JSON.stringify(service.metadata, null, 2)}
+                  </pre>
+                </div>
+              ) : null}
+            </div>
           </div>
-          {service?.tags ? (
-            <div>
-              <p className="text-[11px] uppercase tracking-wide text-slate-500">Tags</p>
-              <p className="font-mono text-xs text-slate-700">
-                {Object.entries(service.tags)
-                  .map(([k, v]) => `${k}=${v}`)
-                  .join(", ") || "None"}
-              </p>
-            </div>
-          ) : null}
-          {service?.metadata ? (
-            <div>
-              <p className="text-[11px] uppercase tracking-wide text-slate-500">Metadata</p>
-              <pre className="overflow-auto rounded border border-slate-200 bg-slate-50 p-2 text-[11px] text-slate-700">{formatJson(service.metadata)}</pre>
-            </div>
-          ) : null}
-        </div>
+        ) : null}
 
         <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-2">
           {tabOrder.map((tab) => (

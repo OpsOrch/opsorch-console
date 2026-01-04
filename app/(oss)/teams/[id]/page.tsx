@@ -178,6 +178,19 @@ export default function TeamDetailPage() {
           ) : (
             <span className="text-xs text-slate-600">No tags provided</span>
           )}
+          {team?.url ? (
+            <a
+              href={team.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-lg border border-[#8fdede] bg-white px-2 py-1 text-xs font-medium text-[#0f1a1d] transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+            >
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              View team
+            </a>
+          ) : null}
           {errors.team ? <Pill label={errors.team} tone="error" /> : null}
           <div className="ml-auto flex items-center gap-2 text-xs text-slate-600">
             <button

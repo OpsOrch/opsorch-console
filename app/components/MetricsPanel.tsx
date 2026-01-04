@@ -188,17 +188,17 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
       id="metrics-panel"
       title="Query"
       action={
-        !readOnly ? (
-          <div className="flex gap-2">
-            {!isDefaultState() && (
-              <button
-                type="button"
-                onClick={resetToDefaults}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-              >
-                Reset to Default
-              </button>
-            )}
+        <div className="flex gap-2">
+          {!readOnly && !isDefaultState() && (
+            <button
+              type="button"
+              onClick={resetToDefaults}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              Reset to Default
+            </button>
+          )}
+          {!readOnly && (
             <button
               type="button"
               onClick={runMetricQuery}
@@ -206,8 +206,8 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
             >
               Run query
             </button>
-          </div>
-        ) : null
+          )}
+        </div>
       }
     >
       {!readOnly && (
@@ -476,6 +476,22 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
                       </div>
                     )}
                   </div>
+
+                  {series.url ? (
+                    <div className="mt-4 pt-4 border-t border-slate-200">
+                      <a
+                        href={series.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 rounded-lg border border-[#8fdede] bg-white px-2 py-1 text-xs font-medium text-[#0f1a1d] transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+                      >
+                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                        </svg>
+                        View metric
+                      </a>
+                    </div>
+                  ) : null}
                 </div>
               </div>
             );

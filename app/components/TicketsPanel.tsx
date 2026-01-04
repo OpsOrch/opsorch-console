@@ -297,9 +297,8 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
               <button
                 key={t.id}
                 type="button"
-                onClick={() => setSelectedTicket(t)}
-                className={`animate-fade-in flex items-center gap-3 justify-between rounded-lg border px-3 py-2 text-left shadow-sm transition-all hover:border-[#55cfd0] hover:shadow-md ${selectedTicket?.id === t.id ? "border-[#55cfd0] bg-purple-50 shadow-md" : "border-slate-200 bg-white"
-                  }`}
+                onClick={() => router.push(`/tickets/${t.id}`)}
+                className="animate-fade-in flex items-center gap-3 justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-left shadow-sm transition-all hover:border-[#55cfd0] hover:shadow-md"
               >
                 <div className="flex items-center gap-2">
                   <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${selectedTicket?.id === t.id ? "bg-purple-100" : "bg-slate-100"

@@ -411,9 +411,8 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
                     )}
                     <button
                       type="button"
-                      onClick={() => setSelectedDeployment(d)}
-                      className={`w-full flex items-start gap-4 rounded-lg border px-4 py-3 text-left shadow-sm transition-all hover:border-[#55cfd0] hover:shadow-md ${selectedDeployment?.id === d.id ? "border-[#55cfd0] bg-blue-50 shadow-md" : "border-slate-200 bg-white"
-                        }`}
+                      onClick={() => router.push(`/deployments/${d.id}`)}
+                      className="w-full flex items-start gap-4 rounded-lg border border-slate-200 bg-white px-4 py-3 text-left shadow-sm transition-all hover:border-[#55cfd0] hover:shadow-md"
                     >
                       <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-white shadow-sm ${getStatusColor(d.status)}`}>
                         <div className="text-current">
@@ -444,9 +443,8 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
               <button
                 key={d.id}
                 type="button"
-                onClick={() => setSelectedDeployment(d)}
-                className={`animate-fade-in flex items-center gap-3 justify-between rounded-lg border px-3 py-2 text-left shadow-sm transition-all hover:border-[#55cfd0] hover:shadow-md ${selectedDeployment?.id === d.id ? "border-[#55cfd0] bg-blue-50 shadow-md" : "border-slate-200 bg-white"
-                  }`}
+                onClick={() => router.push(`/deployments/${d.id}`)}
+                className="animate-fade-in flex items-center gap-3 justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-left shadow-sm transition-all hover:border-[#55cfd0] hover:shadow-md"
               >
                 <div className="flex items-center gap-2">
                   <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${selectedDeployment?.id === d.id ? "bg-blue-100" : "bg-slate-100"
