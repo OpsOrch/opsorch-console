@@ -96,6 +96,21 @@ export default function AlertDetailPage() {
                         <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
                             <h3 className="mb-2 text-sm font-semibold text-slate-900">Description</h3>
                             <p className="text-slate-700">{alert.description || "No description provided."}</p>
+                            {alert.url ? (
+                                <div className="mt-4 pt-4 border-t border-slate-200">
+                                    <a
+                                        href={alert.url}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="inline-flex items-center gap-2 rounded-lg bg-[#55cfd0] px-3 py-2 text-sm font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
+                                    >
+                                        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                        </svg>
+                                        View alert
+                                    </a>
+                                </div>
+                            ) : null}
                         </div>
 
                         {alert.fields && Object.keys(alert.fields).length > 0 ? (

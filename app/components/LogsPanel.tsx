@@ -160,17 +160,17 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
       id="logs-panel"
       title="Search"
       action={
-        !readOnly ? (
-          <div className="flex gap-2">
-            {!isDefaultQuery() && (
-              <button
-                type="button"
-                onClick={resetToDefaults}
-                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
-              >
-                Reset to Default
-              </button>
-            )}
+        <div className="flex gap-2">
+          {!readOnly && !isDefaultQuery() && (
+            <button
+              type="button"
+              onClick={resetToDefaults}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              Reset to Default
+            </button>
+          )}
+          {!readOnly && (
             <button
               type="button"
               onClick={runLogQuery}
@@ -178,8 +178,8 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
             >
               Run query
             </button>
-          </div>
-        ) : null
+          )}
+        </div>
       }
     >
       {!readOnly && (
@@ -326,7 +326,22 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
                     <span className={`text-sm font-semibold uppercase ${textClasses[severityColor]}`}>
                       {entry.severity || "info"}
                     </span>
-                    <span className="text-xs text-slate-600">{formatDate(entry.timestamp)}</span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-slate-600">{formatDate(entry.timestamp)}</span>
+                      {entry.url ? (
+                        <a
+                          href={entry.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded-lg border border-[#8fdede] bg-white px-2 py-1 text-xs font-medium text-[#0f1a1d] transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+                        >
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                          View log
+                        </a>
+                      ) : null}
+                    </div>
                   </div>
                 </div>
                 <div className="px-4 py-3">

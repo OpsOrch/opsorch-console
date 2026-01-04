@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useMemo } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { AppShell } from "@/app/components/AppShell";
@@ -59,49 +60,7 @@ export default function DeploymentDetailPage() {
       });
   }, [deploymentId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const getStatusColor = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "success":
-        return "text-green-600 bg-green-50";
-      case "failed":
-        return "text-red-600 bg-red-50";
-      case "running":
-        return "text-blue-600 bg-blue-50";
-      case "pending":
-        return "text-yellow-600 bg-yellow-50";
-      default:
-        return "text-gray-600 bg-gray-50";
-    }
-  };
 
-  const getDeploymentTypeIcon = (deploymentType: string) => {
-    switch (deploymentType) {
-      case "rollback":
-        return (
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6" />
-          </svg>
-        );
-      case "canary":
-        return (
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-          </svg>
-        );
-      case "blue_green":
-        return (
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4" />
-          </svg>
-        );
-      default:
-        return (
-          <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-        );
-    }
-  };
 
   if (deploymentState.loading) {
     return (
@@ -140,193 +99,173 @@ export default function DeploymentDetailPage() {
   const scope = deriveScope(deployment);
   const deploymentType = deployment.metadata?.deployment_type as string;
 
+  const hero = deployment ? (
+    <div className="flex items-center gap-3">
+      <Pill
+        label={deployment.status}
+        tone={
+          deployment.status === "success" ? "success" :
+            deployment.status === "failed" ? "error" :
+              deployment.status === "running" ? "warn" : "default"
+        }
+      />
+      {deployment.version && <Pill label={deployment.version} />}
+      <span className="text-xs uppercase tracking-[0.2em] text-[#3d8f92]">{deployment.id}</span>
+    </div>
+  ) : (
+    "Deployment"
+  );
+
   return (
     <AppShell
-      title={`${deployment.service || "Unknown Service"} ${deployment.version || ""}`}
-      description={`Deployment ${deployment.id} in ${deployment.environment || "unknown environment"}`}
+      title={deployment?.service || "Deployment detail"}
+      description="Deployment status, metadata, and related telemetry."
+      hero={hero}
     >
-      <div className="space-y-4">
-        {/* Deployment Header */}
-        <Section title="Deployment Details">
-          <div className="rounded-xl border border-slate-200 bg-white/80 p-4">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
-                  <div className="text-blue-600">
-                    {getDeploymentTypeIcon(deploymentType)}
-                  </div>
-                </div>
-                <div>
-                  <div className="flex items-center gap-3">
-                    <h1 className="text-xl font-bold text-slate-900">{deployment.service || "Unknown Service"}</h1>
-                    {deployment.version && <Pill label={deployment.version} />}
-                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-sm font-medium ${getStatusColor(deployment.status)}`}>
-                      {deployment.status}
-                    </span>
-                  </div>
-                  <p className="mt-1 text-sm text-slate-600">{deployment.id}</p>
-                  <div className="mt-2 flex items-center gap-4 text-sm text-slate-600">
-                    <span>Environment: <strong>{deployment.environment || "Unknown"}</strong></span>
-                    {deploymentType && <span>Type: <strong className="capitalize">{deploymentType.replace("_", " ")}</strong></span>}
-                  </div>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => router.push("/deployments")}
-                className="rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-semibold text-[#0f1a1d] transition hover:border-[#55cfd0]"
-              >
-                Back to Deployments
-              </button>
-            </div>
-
-            <div className="mt-4 grid grid-cols-2 gap-4 text-sm md:grid-cols-4">
-              <div>
-                <span className="font-medium text-slate-600">Started:</span>
-                <p className="text-slate-900">{formatDate(deployment.startedAt)}</p>
-              </div>
-              {deployment.finishedAt ? (
-                <div>
-                  <span className="font-medium text-slate-600">Finished:</span>
-                  <p className="text-slate-900">{formatDate(deployment.finishedAt)}</p>
-                </div>
-              ) : null}
-              {deployment.actor?.name ? (
-                <div>
-                  <span className="font-medium text-slate-600">Actor:</span>
-                  <p className="text-slate-900">{String(deployment.actor.name)}</p>
-                </div>
-              ) : null}
-              {deployment.metadata?.duration ? (
-                <div>
-                  <span className="font-medium text-slate-600">Duration:</span>
-                  <p className="text-slate-900">{String(deployment.metadata.duration)}</p>
-                </div>
-              ) : null}
-            </div>
-
-            {deployment.url && (
-              <div className="mt-4">
-                <a
-                  href={deployment.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
-                >
-                  View Deployment
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                </a>
-              </div>
-            )}
-          </div>
-        </Section>
-
-        {/* Navigation Tabs */}
-        <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-2">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              onClick={() => setActiveTab(tab.id)}
-              className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${activeTab === tab.id
-                ? "bg-[#55cfd0] text-[#0b1517] shadow"
-                : "text-slate-600 hover:bg-slate-100"
-                }`}
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+          <Link href="/deployments" className="text-xs font-semibold text-[#0b1517] underline-offset-4 hover:underline">
+            Back to all deployments
+          </Link>
+          {deployment?.environment && <Pill label={`env:${deployment.environment}`} />}
+          {deploymentType && <Pill label={`type:${deploymentType.replace("_", " ")}`} />}
+          {deployment?.actor && <Pill label={`by ${deployment.actor}`} />}
+          {deployment?.url ? (
+            <a
+              href={deployment.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 rounded-lg border border-[#8fdede] bg-white px-2 py-1 text-xs font-medium text-[#0f1a1d] transition hover:border-[#55cfd0] hover:text-[#0b1517]"
             >
-              {tab.label}
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              View deployment
+            </a>
+          ) : null}
+          <div className="ml-auto flex flex-wrap items-center gap-2 text-xs text-slate-600">
+            {deployment ? (
+              <>
+                <span>Started {formatDate(deployment.startedAt)}</span>
+                {deployment.finishedAt && <span>Finished {formatDate(deployment.finishedAt)}</span>}
+              </>
+            ) : null}
+            <button
+              type="button"
+              onClick={() => window.location.reload()}
+              className="rounded-lg border border-[#8fdede] bg-white px-3 py-1 font-semibold text-[#0f1a1d] transition hover:border-[#55cfd0]"
+            >
+              Refresh
             </button>
-          ))}
+          </div>
         </div>
 
-        {/* Tab Content */}
-        {activeTab === "overview" ? (
-          <div className="space-y-4">
-            {/* Deployment Metadata */}
-            {deployment.metadata && Object.keys(deployment.metadata).length > 0 && (
-              <Section title="Deployment Metadata">
-                <div className="rounded-xl border border-slate-200 bg-white/80 p-4">
-                  <CodeBlock code={stringify(deployment.metadata) || ""} language="json" />
-                </div>
-              </Section>
-            )}
-
-            {/* Health Checks */}
-            {deployment.metadata?.health_checks ? (
-              <Section title="Health Checks">
-                <div className="rounded-xl border border-slate-200 bg-white/80 p-4">
-                  <div className="flex flex-wrap gap-2">
-                    {(deployment.metadata.health_checks as string[]).map((check) => (
-                      <Pill key={check} label={String(check)} />
-                    ))}
-                  </div>
-                </div>
-              </Section>
-            ) : null}
-
-            {/* Monitoring Links */}
-            {deployment.metadata?.monitoring_links ? (
-              <Section title="Monitoring">
-                <div className="rounded-xl border border-slate-200 bg-white/80 p-4">
-                  <div className="space-y-2">
-                    {(deployment.metadata.monitoring_links as string[]).map((link, index) => (
-                      <a
-                        key={index}
-                        href={String(link)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        {String(link).includes("grafana") ? "Grafana Dashboard" :
-                          String(link).includes("datadog") ? "Datadog Dashboard" :
-                            String(link).includes("newrelic") ? "New Relic Dashboard" : "Monitoring Link"}
-                        <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                        </svg>
-                      </a>
-                    ))}
-                  </div>
-                </div>
-              </Section>
-            ) : null}
+        <div className="space-y-4">
+          {/* Tab Navigation */}
+          <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-2">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                type="button"
+                onClick={() => setActiveTab(tab.id)}
+                className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${activeTab === tab.id
+                  ? "bg-[#55cfd0] text-[#0b1517] shadow"
+                  : "text-slate-600 hover:bg-slate-100"
+                  }`}
+              >
+                {tab.label}
+              </button>
+            ))}
           </div>
-        ) : null}
 
-        {activeTab === "logs" ? (
-          <LogsPanel
-            initialReference={{
-              expression: { search: "*" },
-              start: timeRange.start,
-              end: timeRange.end,
-              scope,
-            }}
-            autoRun={true}
-            readOnly={true}
-          />
-        ) : null}
+          {/* Tab Content */}
+          {activeTab === "overview" ? (
+            <div className="space-y-4">
+              {/* Deployment Metadata */}
+              {deployment.metadata && Object.keys(deployment.metadata).length > 0 && (
+                <Section title="Deployment Metadata">
+                  <div className="rounded-xl border border-slate-200 bg-white/80 p-4">
+                    <CodeBlock code={stringify(deployment.metadata) || ""} language="json" />
+                  </div>
+                </Section>
+              )}
 
-        {activeTab === "metrics" ? (
-          <MetricsPanel
-            initialReference={{
-              expression: { metricName: deployment.service ? `service="${deployment.service}"` : "up" },
-              start: timeRange.start,
-              end: timeRange.end,
-              step: 60,
-              scope,
-            }}
-            autoRun={true}
-            readOnly={true}
-          />
-        ) : null}
+              {/* Health Checks */}
+              {deployment.metadata?.health_checks ? (
+                <Section title="Health Checks">
+                  <div className="rounded-xl border border-slate-200 bg-white/80 p-4">
+                    <div className="flex flex-wrap gap-2">
+                      {(deployment.metadata.health_checks as string[]).map((check) => (
+                        <Pill key={check} label={String(check)} />
+                      ))}
+                    </div>
+                  </div>
+                </Section>
+              ) : null}
 
-        {activeTab === "alerts" ? (
-          <AlertsPanel initialQuery={{ scope }} readOnly={true} />
-        ) : null}
+              {/* Monitoring Links */}
+              {deployment.metadata?.monitoring_links ? (
+                <Section title="Monitoring">
+                  <div className="rounded-xl border border-slate-200 bg-white/80 p-4">
+                    <div className="space-y-2">
+                      {(deployment.metadata.monitoring_links as string[]).map((link, index) => (
+                        <a
+                          key={index}
+                          href={String(link)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
+                        >
+                          {String(link).includes("grafana") ? "Grafana Dashboard" :
+                            String(link).includes("datadog") ? "Datadog Dashboard" :
+                              String(link).includes("newrelic") ? "New Relic Dashboard" : "Monitoring Link"}
+                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                          </svg>
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                </Section>
+              ) : null}
+            </div>
+          ) : null}
 
-        {activeTab === "tickets" ? (
-          <TicketsPanel readOnly={true} initialScope={scope} />
-        ) : null}
+          {activeTab === "logs" ? (
+            <LogsPanel
+              initialReference={{
+                expression: { search: "*" },
+                start: timeRange.start,
+                end: timeRange.end,
+                scope,
+              }}
+              autoRun={true}
+              readOnly={true}
+            />
+          ) : null}
+
+          {activeTab === "metrics" ? (
+            <MetricsPanel
+              initialReference={{
+                expression: { metricName: deployment.service ? `service="${deployment.service}"` : "up" },
+                start: timeRange.start,
+                end: timeRange.end,
+                step: 60,
+                scope,
+              }}
+              autoRun={true}
+              readOnly={true}
+            />
+          ) : null}
+
+          {activeTab === "alerts" ? (
+            <AlertsPanel initialQuery={{ scope }} readOnly={true} />
+          ) : null}
+
+          {activeTab === "tickets" ? (
+            <TicketsPanel readOnly={true} initialScope={scope} />
+          ) : null}
+        </div>
       </div>
     </AppShell>
   );
