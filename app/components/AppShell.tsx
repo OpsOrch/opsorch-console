@@ -50,7 +50,7 @@ export function AppShell({
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#0d1416] via-[#0f2026] to-[#102b31] text-slate-50">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 lg:flex-row">
+      <div className="mx-auto flex max-w-6xl flex-col gap-6 px-4 py-8 sm:px-8 lg:flex-row xl:max-w-[90rem] 2xl:max-w-[110rem]">
         <aside className="flex w-full flex-col gap-6 rounded-3xl border border-[#2c4c52] bg-[#0f1c20]/80 p-5 text-sm shadow-2xl lg:w-72">
           <div className="flex items-center gap-3 rounded-2xl border border-[#1c343a] bg-[#122328]/70 px-3 py-2">
             <Image src="/OpsOrch.png" alt="OpsOrch" width={48} height={48} className="rounded-xl" />

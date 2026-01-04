@@ -371,7 +371,7 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
           </div>
         </>
       )}
-      <div className="flex max-h-80 flex-col gap-4 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="flex max-h-80 xl:max-h-[30rem] 2xl:max-h-[40rem] flex-col gap-4 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
         {metricState.error ? (
           <EmptyState
             title="Error loading metrics"
@@ -380,8 +380,8 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
             action={{ label: "Retry", onClick: runMetricQuery }}
           />
         ) : (metricState.loading || integrationsLoading) && metricSeries.length === 0 ? (
-          <div className="animate-fade-in space-y-4">
-            {[1, 2].map((i) => (
+          <>
+            {Array.from({ length: 4 }).map((_, i) => (
               <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-4 py-4">
                 <div className="flex items-center justify-between">
                   <div className="h-5 w-32 rounded bg-slate-200" />
@@ -395,7 +395,7 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
                 <div className="mt-3 h-16 rounded bg-slate-200" />
               </div>
             ))}
-          </div>
+          </>
         ) : !hasIntegrations ? (
           <EmptyState
             title="No integration configured"

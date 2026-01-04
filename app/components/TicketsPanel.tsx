@@ -258,7 +258,7 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
       )}
 
       <div className={readOnly ? "grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm" : "grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm"}>
-        <div className="flex flex-col gap-2 max-h-52 overflow-y-auto">
+        <div className="flex flex-col gap-2 max-h-52 xl:max-h-[24rem] 2xl:max-h-[32rem] overflow-y-auto">
           {ticketState.error ? (
             <EmptyState
               title="Error loading tickets"
@@ -267,8 +267,8 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
               action={{ label: "Retry", onClick: runSearch }}
             />
           ) : (ticketState.loading || integrationsLoading) && tickets.length === 0 ? (
-            <div className="animate-fade-in space-y-2">
-              {[1, 2, 3].map((i) => (
+            <>
+              {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-3 py-2">
                   <div className="flex items-center justify-between">
                     <div className="h-4 w-32 rounded bg-slate-200" />
@@ -277,7 +277,7 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
                   <div className="mt-2 h-3 w-24 rounded bg-slate-200" />
                 </div>
               ))}
-            </div>
+            </>
           ) : !hasIntegrations ? (
             <EmptyState
               title="No integration configured"
