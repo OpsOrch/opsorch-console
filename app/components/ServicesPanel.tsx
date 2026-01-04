@@ -88,7 +88,7 @@ export function ServicesPanel({ initialName }: ServicesPanelProps = {}) {
         />
       </div>
       {serviceState.error ? <Pill label={serviceState.error} tone="error" /> : null}
-      <div className="grid max-h-72 gap-3 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="grid max-h-72 xl:max-h-[30rem] 2xl:max-h-[40rem] gap-3 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
         {serviceState.error ? (
           <EmptyState
             title="Error loading services"
@@ -97,8 +97,8 @@ export function ServicesPanel({ initialName }: ServicesPanelProps = {}) {
             action={{ label: "Retry", onClick: runSearch }}
           />
         ) : serviceState.loading && services.length === 0 ? (
-          <div className="animate-fade-in space-y-3">
-            {[1, 2, 3].map((i) => (
+          <>
+            {Array.from({ length: 9 }).map((_, i) => (
               <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-4 py-3">
                 <div className="flex items-center justify-between">
                   <div className="h-5 w-32 rounded bg-slate-200" />
@@ -107,7 +107,7 @@ export function ServicesPanel({ initialName }: ServicesPanelProps = {}) {
                 <div className="mt-2 h-3 w-48 rounded bg-slate-200" />
               </div>
             ))}
-          </div>
+          </>
         ) : services.length === 0 ? (
           <EmptyState
             title={isDefaultQuery() ? "No services found" : "No matching services"}

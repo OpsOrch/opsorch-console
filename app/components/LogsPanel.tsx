@@ -278,7 +278,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
           </div>
         </>
       )}
-      <div className="flex max-h-72 flex-col gap-3 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
+      <div className="flex max-h-72 xl:max-h-[30rem] 2xl:max-h-[40rem] flex-col gap-3 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
         {logState.error ? (
           <EmptyState
             title="Error loading logs"
@@ -287,8 +287,8 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
             action={{ label: "Retry", onClick: runLogQuery }}
           />
         ) : logState.loading && logs.length === 0 ? (
-          <div className="animate-fade-in space-y-3">
-            {[1, 2, 3].map((i) => (
+          <>
+            {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-4 py-3">
                 <div className="flex items-center justify-between gap-2">
                   <div className="h-4 w-16 rounded bg-slate-200" />
@@ -298,7 +298,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
                 <div className="mt-1 h-3 w-1/2 rounded bg-slate-200" />
               </div>
             ))}
-          </div>
+          </>
         ) : logs.length === 0 ? (
           <EmptyState
             title={readOnly ? "No log results" : isDefaultQuery() ? "No logs found" : "No matching logs"}

@@ -357,7 +357,7 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
       )}
 
       <div className="grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm">
-        <div className={`flex flex-col gap-2 ${viewMode === "list" ? "max-h-52" : "max-h-96"} overflow-y-auto`}>
+        <div className={`flex flex-col gap-2 ${viewMode === "list" ? "max-h-52 xl:max-h-[24rem] 2xl:max-h-[32rem]" : "max-h-96 xl:max-h-[32rem] 2xl:max-h-[40rem]"} overflow-y-auto`}>
           {deploymentState.error ? (
             <EmptyState
               title="Error loading deployments"
@@ -366,8 +366,8 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
               action={{ label: "Retry", onClick: runSearch }}
             />
           ) : deploymentState.loading && deployments.length === 0 ? (
-            <div className="animate-fade-in space-y-2">
-              {[1, 2, 3].map((i) => (
+            <>
+              {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-3 py-2">
                   <div className="flex items-center justify-between">
                     <div className="h-4 w-32 rounded bg-slate-200" />
@@ -376,16 +376,16 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
                   <div className="mt-2 h-3 w-24 rounded bg-slate-200" />
                 </div>
               ))}
-            </div>
+            </>
           ) : (deploymentState.loading || integrationsLoading) && deployments.length === 0 ? (
-            <div className="animate-fade-in space-y-3">
-              {[1, 2, 3].map((i) => (
+            <>
+              {Array.from({ length: 8 }).map((_, i) => (
                 <div key={i} className="flex h-16 animate-pulse items-center justify-between rounded-lg border border-slate-200 bg-white px-4">
                   <div className="h-4 w-1/3 rounded bg-slate-200" />
                   <div className="h-4 w-24 rounded bg-slate-200" />
                 </div>
               ))}
-            </div>
+            </>
           ) : !hasIntegrations ? (
             <EmptyState
               title="No integration configured"
