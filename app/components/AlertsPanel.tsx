@@ -4,6 +4,7 @@ import { Alert, AlertQuery } from "@/app/lib/types";
 import { queryAlerts } from "@/app/lib/alerts";
 import { Badge, Field, Section, TextInput } from "@/app/lib/ui";
 import { formatDate } from "@/app/lib/utils";
+import { DEFAULT_QUERY_LIMIT } from "@/app/lib/consts";
 import { useAsyncState, useIntegrations } from "@/app/lib/hooks";
 import { ScopeInputs } from "@/app/components/ScopeInputs";
 import { EmptyState } from "@/app/components/EmptyState";
@@ -14,7 +15,7 @@ type AlertsPanelProps = {
 };
 
 const DEFAULT_QUERY: Partial<AlertQuery> = {
-    limit: 20,
+    limit: DEFAULT_QUERY_LIMIT,
 };
 
 export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps = {}) {
@@ -30,7 +31,7 @@ export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps
         statuses: initialQuery?.statuses,
         severities: initialQuery?.severities,
         scope: initialQuery?.scope,
-        limit: initialQuery?.limit || 100,
+        limit: initialQuery?.limit || DEFAULT_QUERY_LIMIT,
     }));
 
     const [statusesInput, setStatusesInput] = useState(() => initialQuery?.statuses?.join(", ") || "");
@@ -73,7 +74,7 @@ export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps
             !statusesInput &&
             !severitiesInput &&
             !alertQuery.scope &&
-            alertQuery.limit === 100
+            alertQuery.limit === DEFAULT_QUERY_LIMIT
         );
     };
 
@@ -133,7 +134,7 @@ export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps
                             <TextInput
                                 value={String(alertQuery.limit || "")}
                                 onChange={(v) => setAlertQuery((q) => ({ ...q, limit: v ? Number(v) : undefined }))}
-                                placeholder="100"
+                                placeholder="20"
                                 type="number"
                             />
                         }

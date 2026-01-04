@@ -3,6 +3,7 @@ import { useRouter } from "next/navigation";
 import { useAsyncState, useIntegrations } from "@/app/lib/hooks";
 import { queryIncidents } from "@/app/lib/incidents";
 import { formatDate } from "@/app/lib/utils";
+import { DEFAULT_QUERY_LIMIT } from "@/app/lib/consts";
 import { Incident, IncidentQuery } from "@/app/lib/types";
 import { Badge, Field, Section, TextInput } from "@/app/lib/ui";
 import { IncidentCreateModal } from "./IncidentCreateModal";
@@ -16,7 +17,7 @@ type IncidentsPanelProps = {
 };
 
 const DEFAULT_QUERY: Partial<IncidentQuery> = {
-  limit: 20,
+  limit: DEFAULT_QUERY_LIMIT,
 };
 
 export function IncidentsPanel({ initialQuery, readOnly = false }: IncidentsPanelProps = {}) {
@@ -33,7 +34,7 @@ export function IncidentsPanel({ initialQuery, readOnly = false }: IncidentsPane
     statuses: initialQuery?.statuses,
     severities: initialQuery?.severities,
     scope: initialQuery?.scope,
-    limit: initialQuery?.limit || 100,
+    limit: initialQuery?.limit || DEFAULT_QUERY_LIMIT,
   }));
 
   const [statusesInput, setStatusesInput] = useState(() => initialQuery?.statuses?.join(", ") || "");
@@ -75,7 +76,7 @@ export function IncidentsPanel({ initialQuery, readOnly = false }: IncidentsPane
       !statusesInput &&
       !severitiesInput &&
       !incidentQuery.scope &&
-      incidentQuery.limit === 100
+      incidentQuery.limit === DEFAULT_QUERY_LIMIT
     );
   };
 
@@ -166,7 +167,7 @@ export function IncidentsPanel({ initialQuery, readOnly = false }: IncidentsPane
               <TextInput
                 value={String(incidentQuery.limit || "")}
                 onChange={(v) => setIncidentQuery((q) => ({ ...q, limit: v ? Number(v) : undefined }))}
-                placeholder="100"
+                placeholder="20"
                 type="number"
               />
             }

@@ -4,6 +4,7 @@ import { requestJSON } from "@/app/lib/api";
 import { useAsyncState, useIntegrations } from "@/app/lib/hooks";
 import { Ticket, QueryScope } from "@/app/lib/types";
 import { formatDate, stringify } from "@/app/lib/utils";
+import { DEFAULT_QUERY_LIMIT } from "@/app/lib/consts";
 import { CodeBlock, Field, Pill, Section, Select, TextInput } from "@/app/lib/ui";
 import { TicketCreateModal } from "./TicketCreateModal";
 import { EmptyState } from "@/app/components/EmptyState";
@@ -26,7 +27,7 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
   const [searchStatuses, setSearchStatuses] = useState("");
   const [searchAssignee, setSearchAssignee] = useState("");
   const [searchReporter, setSearchReporter] = useState("");
-  const [searchLimit, setSearchLimit] = useState("20");
+  const [searchLimit, setSearchLimit] = useState(String(DEFAULT_QUERY_LIMIT));
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { start: startTicketAction, succeed: finishTicketAction, fail: failTicketAction } = ticketState;
 
@@ -145,10 +146,10 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
     setSearchStatuses("");
     setSearchAssignee("");
     setSearchReporter("");
-    setSearchLimit("20");
+    setSearchLimit(String(DEFAULT_QUERY_LIMIT));
     // trigger a search with default values
     ticketState.start();
-    const body = { limit: 20 };
+    const body = { limit: DEFAULT_QUERY_LIMIT };
     requestJSON<Ticket[]>("/tickets/query", {
       method: "POST",
       body: JSON.stringify(body),
@@ -165,7 +166,7 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
       !searchStatuses &&
       !searchAssignee &&
       !searchReporter &&
-      searchLimit === "20"
+      searchLimit === String(DEFAULT_QUERY_LIMIT)
     );
   };
 

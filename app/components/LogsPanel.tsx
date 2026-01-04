@@ -4,6 +4,7 @@ import { requestJSON } from "@/app/lib/api";
 import { LogEntry, LogReference } from "@/app/lib/types";
 import { CodeBlock, Field, Pill, Section, TextInput } from "@/app/lib/ui";
 import { formatDate } from "@/app/lib/utils";
+import { DEFAULT_QUERY_LIMIT } from "@/app/lib/consts";
 import { ScopeInputs } from "@/app/components/ScopeInputs";
 import { EmptyState } from "@/app/components/EmptyState";
 
@@ -79,7 +80,7 @@ const deriveLogQuery = (reference?: LogReference) => {
     severityIn: reference?.expression?.severityIn || [],
     start: toInputTimestamp(reference?.start) || toInputTimestamp(defaultStart.toISOString()) || "",
     end: toInputTimestamp(reference?.end) || toInputTimestamp(defaultEnd.toISOString()) || "",
-    limit: "100",
+    limit: String(DEFAULT_QUERY_LIMIT),
     scope: reference?.scope,
   };
 };
@@ -148,7 +149,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
       !logQuery.query &&
       !severityIn &&
       !logQuery.scope &&
-      logQuery.limit === "100"
+      logQuery.limit === String(DEFAULT_QUERY_LIMIT)
     );
   };
 
@@ -234,7 +235,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
               <TextInput
                 value={logQuery.limit}
                 onChange={(v) => setLogQuery((q) => ({ ...q, limit: v }))}
-                placeholder="100"
+                placeholder="20"
                 type="number"
               />
             }

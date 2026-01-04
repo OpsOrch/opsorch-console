@@ -4,6 +4,7 @@ import { requestJSON } from "@/app/lib/api";
 import { useAsyncState, useIntegrations } from "@/app/lib/hooks";
 import { Deployment, QueryScope } from "@/app/lib/types";
 import { formatDate, stringify } from "@/app/lib/utils";
+import { DEFAULT_QUERY_LIMIT } from "@/app/lib/consts";
 import { CodeBlock, Field, Pill, Section, TextInput, Badge } from "@/app/lib/ui";
 import { ScopeInputs } from "@/app/components/ScopeInputs";
 import { EmptyState } from "@/app/components/EmptyState";
@@ -30,7 +31,7 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
   const [searchText, setSearchText] = useState(initialQuery?.query || "");
   const [searchStatuses, setSearchStatuses] = useState(initialQuery?.statuses?.join(", ") || "");
   const [searchVersions, setSearchVersions] = useState(initialQuery?.versions?.join(", ") || "");
-  const [searchLimit, setSearchLimit] = useState("20");
+  const [searchLimit, setSearchLimit] = useState(String(DEFAULT_QUERY_LIMIT));
   const [showAdvanced, setShowAdvanced] = useState(Boolean(initialScope || initialQuery?.scope));
   const [deploymentScope, setDeploymentScope] = useState<QueryScope | undefined>(initialScope || initialQuery?.scope);
   const [viewMode, setViewMode] = useState<"list" | "timeline" | "stats">("list");
@@ -102,12 +103,12 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
     setSearchText("");
     setSearchStatuses("");
     setSearchVersions("");
-    setSearchLimit("25");
+    setSearchLimit(String(DEFAULT_QUERY_LIMIT));
     setDeploymentScope(undefined);
     // trigger a search with default values
     requestAnimationFrame(() => {
       deploymentState.start();
-      const body = { limit: 25 };
+      const body = { limit: DEFAULT_QUERY_LIMIT };
       requestJSON<Deployment[]>("/deployments/query", {
         method: "POST",
         body: JSON.stringify(body),
@@ -125,7 +126,7 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
       !searchStatuses &&
       !searchVersions &&
       !deploymentScope &&
-      searchLimit === "25"
+      searchLimit === String(DEFAULT_QUERY_LIMIT)
     );
   };
 
@@ -226,7 +227,7 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
         </div>
         <Field
           label="Limit"
-          input={<TextInput value={searchLimit} onChange={setSearchLimit} type="number" placeholder="25" />}
+          input={<TextInput value={searchLimit} onChange={setSearchLimit} type="number" placeholder="20" />}
         />
 
         <div className="flex flex-wrap gap-2 text-[11px] text-[#1c3134]">
