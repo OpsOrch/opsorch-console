@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAsyncState } from "@/app/lib/hooks";
 import { requestJSON } from "@/app/lib/api";
-import { LogEntry, LogReference } from "@/app/lib/types";
+import { LogEntry, LogReference, LogEntries } from "@/app/lib/types";
 import { CodeBlock, Field, Pill, Section, TextInput } from "@/app/lib/ui";
 import { formatDate } from "@/app/lib/utils";
 import { DEFAULT_QUERY_LIMIT } from "@/app/lib/consts";
@@ -89,7 +89,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
   const logState = useAsyncState();
   // Initialize state once from props. Changing props won't reset state unless the component is remounted (key changes).
   const [logQuery, setLogQuery] = useState(() => deriveLogQuery(initialReference));
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logs, setLogs] = useState<LogEntries>({ entries: [] });
   const [showAdvanced, setShowAdvanced] = useState(Boolean(initialReference?.expression?.severityIn?.length || initialReference?.scope));
   const [severityIn, setSeverityIn] = useState(() => initialReference?.expression?.severityIn?.join(", ") || "");
   const { start, succeed, fail } = logState;
@@ -115,7 +115,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
       if (!Number.isNaN(limitVal) && query.limit) {
         payload.limit = limitVal;
       }
-      const res = await requestJSON<LogEntry[]>("/logs/query", {
+      const res = await requestJSON<LogEntries>("/logs/query", {
         method: "POST",
         body: JSON.stringify(payload),
       });
@@ -170,11 +170,24 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
               Reset to Default
             </button>
           )}
+          {!readOnly && logs.url && (
+            <a
+              href={logs.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+              View logs
+            </a>
+          )}
           {!readOnly && (
             <button
               type="button"
               onClick={runLogQuery}
-              className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
+              className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] transition hover:bg-[#3fb8b8] shadow-sm action-button"
             >
               Run query
             </button>
@@ -286,7 +299,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
             variant="error"
             action={{ label: "Retry", onClick: runLogQuery }}
           />
-        ) : logState.loading && logs.length === 0 ? (
+        ) : logState.loading && logs.entries.length === 0 ? (
           <>
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-4 py-3">
@@ -299,7 +312,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
               </div>
             ))}
           </>
-        ) : logs.length === 0 ? (
+        ) : logs.entries.length === 0 ? (
           <EmptyState
             title={readOnly ? "No log results" : isDefaultQuery() ? "No logs found" : "No matching logs"}
             description={readOnly ? "No logs to display." : isDefaultQuery() ? "There are no logs in the last hour." : "Try adjusting your search criteria."}
@@ -307,7 +320,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
             action={!readOnly && !isDefaultQuery() ? { label: "Reset to Default", onClick: resetToDefaults } : { label: "Run Query", onClick: runLogQuery }}
           />
         ) : (
-          logs.map((entry, idx) => {
+          logs.entries.map((entry, idx) => {
             const severityColor = getSeverityColor(entry.severity);
             const colorClasses = {
               rose: "border-rose-200 bg-rose-50",
@@ -326,22 +339,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
                     <span className={`text-sm font-semibold uppercase ${textClasses[severityColor]}`}>
                       {entry.severity || "info"}
                     </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-slate-600">{formatDate(entry.timestamp)}</span>
-                      {entry.url ? (
-                        <a
-                          href={entry.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1 rounded-lg border border-[#8fdede] bg-white px-2 py-1 text-xs font-medium text-[#0f1a1d] transition hover:border-[#55cfd0] hover:text-[#0b1517]"
-                        >
-                          <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                          </svg>
-                          View log
-                        </a>
-                      ) : null}
-                    </div>
+                    <span className="text-xs text-slate-600">{formatDate(entry.timestamp)}</span>
                   </div>
                 </div>
                 <div className="px-4 py-3">
@@ -352,6 +350,6 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
           })
         )}
       </div>
-    </Section>
+    </Section >
   );
 }

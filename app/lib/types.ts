@@ -28,10 +28,14 @@ export type LogEntry = {
   message: LogMessage;
   severity?: string;
   service?: string;
-  url?: string;
   labels?: Record<string, string>;
   fields?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
+};
+
+export type LogEntries = {
+  entries: LogEntry[];
+  url?: string;
 };
 
 export type MetricSeries = {
