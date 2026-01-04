@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useAsyncState } from "@/app/lib/hooks";
 import { requestJSON } from "@/app/lib/api";
 import { LogEntry, LogReference } from "@/app/lib/types";
 import { CodeBlock, Field, Pill, Section, TextInput } from "@/app/lib/ui";
 import { formatDate } from "@/app/lib/utils";
 import { ScopeInputs } from "@/app/components/ScopeInputs";
+import { EmptyState } from "@/app/components/EmptyState";
 
 type LogsPanelProps = {
   initialReference?: LogReference;
@@ -64,7 +65,8 @@ const toInputTimestamp = (value?: string) => {
   if (!value) return undefined;
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return undefined;
-  return date.toISOString().slice(0, 16);
+  const pad = (n: number) => n.toString().padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 };
 
 const deriveLogQuery = (reference?: LogReference) => {
@@ -75,8 +77,8 @@ const deriveLogQuery = (reference?: LogReference) => {
     query: defaultSearch,
     filters: reference?.expression?.filters || [],
     severityIn: reference?.expression?.severityIn || [],
-    start: toInputTimestamp(reference?.start) || defaultStart.toISOString().slice(0, 16),
-    end: toInputTimestamp(reference?.end) || defaultEnd.toISOString().slice(0, 16),
+    start: toInputTimestamp(reference?.start) || toInputTimestamp(defaultStart.toISOString()) || "",
+    end: toInputTimestamp(reference?.end) || toInputTimestamp(defaultEnd.toISOString()) || "",
     limit: "100",
     scope: reference?.scope,
   };
@@ -84,14 +86,12 @@ const deriveLogQuery = (reference?: LogReference) => {
 
 export function LogsPanel({ initialReference, autoRun = false, readOnly = false }: LogsPanelProps = {}) {
   const logState = useAsyncState();
+  // Initialize state once from props. Changing props won't reset state unless the component is remounted (key changes).
   const [logQuery, setLogQuery] = useState(() => deriveLogQuery(initialReference));
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [showAdvanced, setShowAdvanced] = useState(Boolean(initialReference?.expression?.severityIn?.length || initialReference?.scope));
   const [severityIn, setSeverityIn] = useState(() => initialReference?.expression?.severityIn?.join(", ") || "");
   const { start, succeed, fail } = logState;
-  const autoRunRef = useRef(autoRun);
-
-
 
   const setRangeMinutes = (mins: number) => {
     const end = new Date();
@@ -125,33 +125,34 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
     }
   }, [fail, setLogs, start, succeed, severityIn]);
 
-  const [prevInitialReference, setPrevInitialReference] = useState(initialReference);
-  if (initialReference !== prevInitialReference) {
-    setPrevInitialReference(initialReference);
-    setLogQuery(deriveLogQuery(initialReference));
-  }
-
   useEffect(() => {
-    if (initialReference && autoRun) {
-      const timer = setTimeout(() => {
-        void executeLogQuery(deriveLogQuery(initialReference));
-      }, 0);
-      return () => clearTimeout(timer);
+    if (autoRun) {
+      void executeLogQuery(logQuery);
     }
-  }, [initialReference, executeLogQuery, autoRun]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // logQuery is stable on mount, so this runs once effectively if autoRun is true
 
   const runLogQuery = async () => {
     await executeLogQuery(logQuery);
   };
 
-  useEffect(() => {
-    if (!autoRunRef.current) return;
-    autoRunRef.current = false;
-    const frame = requestAnimationFrame(() => {
-      void executeLogQuery(logQuery);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [executeLogQuery, logQuery]);
+  const resetToDefaults = () => {
+    const defaultQuery = deriveLogQuery();
+    setLogQuery(defaultQuery);
+    setSeverityIn("");
+    void executeLogQuery(defaultQuery);
+  };
+
+  const isDefaultQuery = () => {
+    return (
+      !logQuery.query &&
+      !severityIn &&
+      !logQuery.scope &&
+      logQuery.limit === "100"
+    );
+  };
+
+
 
   return (
     <Section
@@ -159,13 +160,24 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
       title="Search"
       action={
         !readOnly ? (
-          <button
-            type="button"
-            onClick={runLogQuery}
-            className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
-          >
-            Run query
-          </button>
+          <div className="flex gap-2">
+            {!isDefaultQuery() && (
+              <button
+                type="button"
+                onClick={resetToDefaults}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                Reset to Default
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={runLogQuery}
+              className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
+            >
+              Run query
+            </button>
+          </div>
         ) : null
       }
     >
@@ -210,7 +222,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
                 key={m}
                 type="button"
                 onClick={() => setRangeMinutes(m)}
-                className="rounded-full border border-[#8fdede] bg-white px-2 py-1 transition hover:border-[#55cfd0]"
+                className="rounded-full border border-slate-200 bg-white px-2 py-1 transition hover:border-[#55cfd0]"
               >
                 last {m >= 60 ? `${m / 60}h` : `${m}m`}
               </button>
@@ -251,7 +263,7 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
                   />
                 }
               />
-              
+
               <div className="border-t border-slate-200 pt-4">
                 <ScopeInputs
                   scope={logQuery.scope}
@@ -266,7 +278,14 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
         </>
       )}
       <div className="flex max-h-72 flex-col gap-3 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
-        {logState.loading && logs.length === 0 ? (
+        {logState.error ? (
+          <EmptyState
+            title="Error loading logs"
+            description={logState.error}
+            variant="error"
+            action={{ label: "Retry", onClick: runLogQuery }}
+          />
+        ) : logState.loading && logs.length === 0 ? (
           <div className="animate-fade-in space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-4 py-3">
@@ -280,15 +299,12 @@ export function LogsPanel({ initialReference, autoRun = false, readOnly = false 
             ))}
           </div>
         ) : logs.length === 0 ? (
-          <div className="animate-fade-in rounded-xl border-2 border-dashed border-slate-200 bg-white px-6 py-8 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-              <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-slate-700">No log results</p>
-            <p className="mt-1 text-xs text-slate-500">Run a query to see logs</p>
-          </div>
+          <EmptyState
+            title={readOnly ? "No log results" : isDefaultQuery() ? "No logs found" : "No matching logs"}
+            description={readOnly ? "No logs to display." : isDefaultQuery() ? "There are no logs in the last hour." : "Try adjusting your search criteria."}
+            variant={readOnly ? "default" : "no-data"}
+            action={!readOnly && !isDefaultQuery() ? { label: "Reset to Default", onClick: resetToDefaults } : { label: "Run Query", onClick: runLogQuery }}
+          />
         ) : (
           logs.map((entry, idx) => {
             const severityColor = getSeverityColor(entry.severity);

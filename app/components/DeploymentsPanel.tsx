@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { requestJSON } from "@/app/lib/api";
-import { useAsyncState } from "@/app/lib/hooks";
+import { useAsyncState, useIntegrations } from "@/app/lib/hooks";
 import { Deployment, QueryScope } from "@/app/lib/types";
 import { formatDate, stringify } from "@/app/lib/utils";
 import { CodeBlock, Field, Pill, Section, TextInput, Badge } from "@/app/lib/ui";
 import { ScopeInputs } from "@/app/components/ScopeInputs";
+import { EmptyState } from "@/app/components/EmptyState";
 
 type DeploymentsPanelProps = {
   initialDeploymentId?: string;
@@ -20,15 +21,16 @@ type DeploymentsPanelProps = {
   autoRun?: boolean;
 };
 
-export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initialScope, initialQuery, autoRun = false }: DeploymentsPanelProps = {}) {
+export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initialScope, initialQuery }: DeploymentsPanelProps = {}) {
   const router = useRouter();
   const deploymentState = useAsyncState();
+  const { hasIntegrations, loading: integrationsLoading } = useIntegrations();
   const [deployments, setDeployments] = useState<Deployment[]>([]);
   const [selectedDeployment, setSelectedDeployment] = useState<Deployment | null>(null);
   const [searchText, setSearchText] = useState(initialQuery?.query || "");
   const [searchStatuses, setSearchStatuses] = useState(initialQuery?.statuses?.join(", ") || "");
   const [searchVersions, setSearchVersions] = useState(initialQuery?.versions?.join(", ") || "");
-  const [searchLimit, setSearchLimit] = useState("25");
+  const [searchLimit, setSearchLimit] = useState("20");
   const [showAdvanced, setShowAdvanced] = useState(Boolean(initialScope || initialQuery?.scope));
   const [deploymentScope, setDeploymentScope] = useState<QueryScope | undefined>(initialScope || initialQuery?.scope);
   const [viewMode, setViewMode] = useState<"list" | "timeline" | "stats">("list");
@@ -50,7 +52,7 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
         .map((s) => s.trim())
         .filter(Boolean);
       const limitNum = Number(searchLimit);
-      
+
       if (statuses.length) body.statuses = statuses;
       if (versions.length) body.versions = versions;
       if (searchText.trim()) {
@@ -96,14 +98,45 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
     return () => cancelAnimationFrame(frame);
   }, [initialDeploymentId, loadDeploymentFromReference]);
 
-  // Auto-run search in readOnly mode or when autoRun is enabled
+  const resetToDefaults = () => {
+    setSearchText("");
+    setSearchStatuses("");
+    setSearchVersions("");
+    setSearchLimit("25");
+    setDeploymentScope(undefined);
+    // trigger a search with default values
+    requestAnimationFrame(() => {
+      deploymentState.start();
+      const body = { limit: 25 };
+      requestJSON<Deployment[]>("/deployments/query", {
+        method: "POST",
+        body: JSON.stringify(body),
+      }).then(res => {
+        setDeployments(res);
+        setSelectedDeployment(res[0] || null);
+        deploymentState.succeed();
+      }).catch(err => deploymentState.fail(err));
+    });
+  };
+
+  const isDefaultQuery = () => {
+    return (
+      !searchText &&
+      !searchStatuses &&
+      !searchVersions &&
+      !deploymentScope &&
+      searchLimit === "25"
+    );
+  };
+
+  // Auto-run search on mount
   useEffect(() => {
-    if ((!readOnly && !autoRun) || (!deploymentScope && !initialQuery)) return;
     const frame = requestAnimationFrame(() => {
       void runSearch();
     });
     return () => cancelAnimationFrame(frame);
-  }, [readOnly, autoRun, deploymentScope, initialQuery]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const getStatusColor = (status: string) => {
     switch (status.toLowerCase()) {
@@ -162,13 +195,24 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
               />
             }
           />
-          <button
-            type="button"
-            onClick={runSearch}
-            className="h-fit rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-semibold text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
-          >
-            Search
-          </button>
+          <div className="flex gap-2">
+            {!readOnly && !isDefaultQuery() && (
+              <button
+                type="button"
+                onClick={resetToDefaults}
+                className="h-fit rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                Reset
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={runSearch}
+              className="h-fit rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-semibold text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+            >
+              Search
+            </button>
+          </div>
         </div>
         <div className="grid gap-2 md:grid-cols-2">
           <Field
@@ -184,7 +228,7 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
           label="Limit"
           input={<TextInput value={searchLimit} onChange={setSearchLimit} type="number" placeholder="25" />}
         />
-        
+
         <div className="flex flex-wrap gap-2 text-[11px] text-[#1c3134]">
           <span className="font-semibold">Quick filters:</span>
           {[
@@ -222,7 +266,7 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
             clear all
           </button>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <button
             type="button"
@@ -235,7 +279,7 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
             {showAdvanced ? "Hide" : "Show"} Advanced Options
           </button>
         </div>
-        
+
         {showAdvanced && (
           <div className="space-y-4 rounded-lg border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100/50 p-4 shadow-sm">
             <ScopeInputs
@@ -255,11 +299,10 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
                 key={mode}
                 type="button"
                 onClick={() => setViewMode(mode)}
-                className={`rounded px-3 py-1 text-xs font-medium transition ${
-                  viewMode === mode
-                    ? "bg-white text-slate-900 shadow-sm"
-                    : "text-slate-500 hover:text-slate-700"
-                }`}
+                className={`rounded px-3 py-1 text-xs font-medium transition ${viewMode === mode
+                  ? "bg-white text-slate-900 shadow-sm"
+                  : "text-slate-500 hover:text-slate-700"
+                  }`}
               >
                 {mode.charAt(0).toUpperCase() + mode.slice(1)}
               </button>
@@ -294,7 +337,7 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
               </p>
             </div>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="rounded-lg bg-gradient-to-br from-purple-50 to-indigo-50 px-3 py-2 shadow-sm">
               <p className="text-[10px] font-medium uppercase tracking-wide text-purple-600">Services</p>
@@ -314,7 +357,14 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
 
       <div className="grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm">
         <div className={`flex flex-col gap-2 ${viewMode === "list" ? "max-h-52" : "max-h-96"} overflow-y-auto`}>
-          {deploymentState.loading && deployments.length === 0 ? (
+          {deploymentState.error ? (
+            <EmptyState
+              title="Error loading deployments"
+              description={deploymentState.error}
+              variant="error"
+              action={{ label: "Retry", onClick: runSearch }}
+            />
+          ) : deploymentState.loading && deployments.length === 0 ? (
             <div className="animate-fade-in space-y-2">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-3 py-2">
@@ -326,16 +376,29 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
                 </div>
               ))}
             </div>
-          ) : deployments.length === 0 ? (
-            <div className="animate-fade-in rounded-lg border-2 border-dashed border-slate-200 bg-white px-4 py-6 text-center">
-              <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-blue-50">
-                <svg className="h-5 w-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-                </svg>
-              </div>
-              <p className="text-xs font-medium text-slate-700">No deployments found</p>
-              <p className="mt-0.5 text-xs text-slate-500">Try searching for a service name like &quot;checkout&quot; or &quot;api&quot;</p>
+          ) : (deploymentState.loading || integrationsLoading) && deployments.length === 0 ? (
+            <div className="animate-fade-in space-y-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="flex h-16 animate-pulse items-center justify-between rounded-lg border border-slate-200 bg-white px-4">
+                  <div className="h-4 w-1/3 rounded bg-slate-200" />
+                  <div className="h-4 w-24 rounded bg-slate-200" />
+                </div>
+              ))}
             </div>
+          ) : !hasIntegrations ? (
+            <EmptyState
+              title="No integration configured"
+              description="Connect an integration to manage deployments."
+              variant="no-integration"
+              action={{ label: "Configure Integration", onClick: () => router.push("/settings") }}
+            />
+          ) : deployments.length === 0 ? (
+            <EmptyState
+              title={readOnly ? "No deployments" : isDefaultQuery() ? "No deployments found" : "No matching deployments"}
+              description={readOnly ? "No deployments to display." : isDefaultQuery() ? "There are no deployments in the system currently." : "Try adjusting your search filters or resetting to default."}
+              variant={readOnly ? "default" : "no-data"}
+              action={!readOnly && !isDefaultQuery() ? { label: "Reset to Default", onClick: resetToDefaults } : { label: "Refresh", onClick: runSearch }}
+            />
           ) : viewMode === "timeline" ? (
             <div className="space-y-4">
               {deployments
@@ -348,9 +411,8 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
                     <button
                       type="button"
                       onClick={() => setSelectedDeployment(d)}
-                      className={`w-full flex items-start gap-4 rounded-lg border px-4 py-3 text-left shadow-sm transition-all hover:border-[#55cfd0] hover:shadow-md ${
-                        selectedDeployment?.id === d.id ? "border-[#55cfd0] bg-blue-50 shadow-md" : "border-slate-200 bg-white"
-                      }`}
+                      className={`w-full flex items-start gap-4 rounded-lg border px-4 py-3 text-left shadow-sm transition-all hover:border-[#55cfd0] hover:shadow-md ${selectedDeployment?.id === d.id ? "border-[#55cfd0] bg-blue-50 shadow-md" : "border-slate-200 bg-white"
+                        }`}
                     >
                       <div className={`flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full border-4 border-white shadow-sm ${getStatusColor(d.status)}`}>
                         <div className="text-current">
@@ -382,14 +444,12 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
                 key={d.id}
                 type="button"
                 onClick={() => setSelectedDeployment(d)}
-                className={`animate-fade-in flex items-center gap-3 justify-between rounded-lg border px-3 py-2 text-left shadow-sm transition-all hover:border-[#55cfd0] hover:shadow-md ${
-                  selectedDeployment?.id === d.id ? "border-[#55cfd0] bg-blue-50 shadow-md" : "border-slate-200 bg-white"
-                }`}
+                className={`animate-fade-in flex items-center gap-3 justify-between rounded-lg border px-3 py-2 text-left shadow-sm transition-all hover:border-[#55cfd0] hover:shadow-md ${selectedDeployment?.id === d.id ? "border-[#55cfd0] bg-blue-50 shadow-md" : "border-slate-200 bg-white"
+                  }`}
               >
                 <div className="flex items-center gap-2">
-                  <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${
-                    selectedDeployment?.id === d.id ? "bg-blue-100" : "bg-slate-100"
-                  }`}>
+                  <div className={`flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full ${selectedDeployment?.id === d.id ? "bg-blue-100" : "bg-slate-100"
+                    }`}>
                     <div className={`${selectedDeployment?.id === d.id ? "text-blue-600" : "text-slate-500"}`}>
                       {getDeploymentIcon(d)}
                     </div>
@@ -437,7 +497,7 @@ export function DeploymentsPanel({ initialDeploymentId, readOnly = false, initia
               </span>
             </div>
           </div>
-          
+
           <div className="mt-3 grid grid-cols-2 gap-4 text-xs">
             <div>
               <span className="font-medium text-slate-600">Environment:</span>

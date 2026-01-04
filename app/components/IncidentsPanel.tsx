@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAsyncState } from "@/app/lib/hooks";
+import { useAsyncState, useIntegrations } from "@/app/lib/hooks";
 import { queryIncidents } from "@/app/lib/incidents";
 import { formatDate } from "@/app/lib/utils";
 import { Incident, IncidentQuery } from "@/app/lib/types";
@@ -8,10 +8,15 @@ import { Badge, Field, Section, TextInput } from "@/app/lib/ui";
 import { IncidentCreateModal } from "./IncidentCreateModal";
 import { ScopeInputs } from "@/app/components/ScopeInputs";
 import { requestJSON } from "@/app/lib/api";
+import { EmptyState } from "@/app/components/EmptyState";
 
 type IncidentsPanelProps = {
   initialQuery?: Partial<IncidentQuery>;
   readOnly?: boolean;
+};
+
+const DEFAULT_QUERY: Partial<IncidentQuery> = {
+  limit: 20,
 };
 
 export function IncidentsPanel({ initialQuery, readOnly = false }: IncidentsPanelProps = {}) {
@@ -19,6 +24,7 @@ export function IncidentsPanel({ initialQuery, readOnly = false }: IncidentsPane
   const [incidents, setIncidents] = useState<Incident[]>([]);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const incidentState = useAsyncState();
+  const { hasIntegrations, loading: integrationsLoading } = useIntegrations();
   const { start, succeed, fail } = incidentState;
   const [showAdvanced, setShowAdvanced] = useState(Boolean(initialQuery?.scope || initialQuery?.statuses || initialQuery?.severities));
 
@@ -56,11 +62,25 @@ export function IncidentsPanel({ initialQuery, readOnly = false }: IncidentsPane
     executeQuery(incidentQuery);
   };
 
+  const resetToDefaults = () => {
+    setIncidentQuery(DEFAULT_QUERY);
+    setStatusesInput("");
+    setSeveritiesInput("");
+    executeQuery(DEFAULT_QUERY);
+  };
+
+  const isDefaultQuery = () => {
+    return (
+      !incidentQuery.query &&
+      !statusesInput &&
+      !severitiesInput &&
+      !incidentQuery.scope &&
+      incidentQuery.limit === 100
+    );
+  };
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      executeQuery(incidentQuery);
-    }, 0);
-    return () => clearTimeout(timer);
+    void executeQuery(incidentQuery);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -98,6 +118,15 @@ export function IncidentsPanel({ initialQuery, readOnly = false }: IncidentsPane
               className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
             >
               Create Incident
+            </button>
+          )}
+          {!readOnly && !isDefaultQuery() && (
+            <button
+              type="button"
+              onClick={resetToDefaults}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              Reset to Default
             </button>
           )}
           <button
@@ -190,9 +219,12 @@ export function IncidentsPanel({ initialQuery, readOnly = false }: IncidentsPane
           )}
 
           {incidentState.error ? (
-            <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-              Error: {incidentState.error}
-            </div>
+            <EmptyState
+              title="Error loading incidents"
+              description={incidentState.error}
+              variant="error"
+              action={{ label: "Retry", onClick: runQuery }}
+            />
           ) : null}
         </>
       )}
@@ -206,7 +238,7 @@ export function IncidentsPanel({ initialQuery, readOnly = false }: IncidentsPane
         )}
 
         <div className="flex max-h-60 flex-col gap-3 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
-          {incidentState.loading && incidents.length === 0 ? (
+          {(incidentState.loading || integrationsLoading) && incidents.length === 0 ? (
             <div className="animate-fade-in space-y-3">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-4 py-3">
@@ -221,16 +253,30 @@ export function IncidentsPanel({ initialQuery, readOnly = false }: IncidentsPane
                 </div>
               ))}
             </div>
+          ) : !hasIntegrations ? (
+            <EmptyState
+              title="No integration configured"
+              description="Connect an integration to start monitoring incidents."
+              variant="no-integration"
+              action={{ label: "Configure Integration", onClick: () => router.push("/settings") }}
+            />
           ) : incidents.length === 0 ? (
-            <div className="animate-fade-in rounded-xl border-2 border-dashed border-slate-200 bg-white px-6 py-8 text-center">
-              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-rose-50">
-                <svg className="h-6 w-6 text-rose-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              </div>
-              <p className="text-sm font-medium text-slate-700">No incidents {readOnly ? "" : "loaded"}</p>
-              <p className="mt-1 text-xs text-slate-500">{readOnly ? "Everything looks good!" : "Click Refresh to load incidents or adjust search criteria"}</p>
-            </div>
+            <EmptyState
+              title={readOnly ? "No incidents" : isDefaultQuery() ? "No incidents found" : "No matching incidents"}
+              description={
+                readOnly
+                  ? "Everything looks good!"
+                  : isDefaultQuery()
+                    ? "There are no incidents in the system currently."
+                    : "Try adjusting your search filters or resetting to default."
+              }
+              variant={readOnly ? "default" : "no-data"}
+              action={
+                !readOnly && !isDefaultQuery()
+                  ? { label: "Reset to Default", onClick: resetToDefaults }
+                  : { label: "Refresh", onClick: runQuery }
+              }
+            />
           ) : (
             incidents.map((inc) => {
               const severityColors = {

@@ -1,10 +1,12 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { useAsyncState } from "@/app/lib/hooks";
+import { useCallback, useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useAsyncState, useIntegrations } from "@/app/lib/hooks";
 import { requestJSON } from "@/app/lib/api";
-import { MetricSeries, MetricReference } from "@/app/lib/types";
-import { Badge, Field, Pill, Section, TextInput, TimeSeriesChart, Gauge, Histogram } from "@/app/lib/ui";
+import { MetricSeries, MetricReference, MetricDescriptor } from "@/app/lib/types";
+import { Badge, Field, Section, TextInput, TimeSeriesChart, Gauge, Histogram } from "@/app/lib/ui";
 import { MetricAutocomplete } from "@/app/components/MetricAutocomplete";
 import { ScopeInputs } from "@/app/components/ScopeInputs";
+import { EmptyState } from "@/app/components/EmptyState";
 
 type MetricsPanelProps = {
   initialReference?: MetricReference;
@@ -36,6 +38,7 @@ const deriveMetricQuery = (reference?: MetricReference) => {
 };
 
 export function MetricsPanel({ initialReference, autoRun = false, readOnly = false }: MetricsPanelProps = {}) {
+  const router = useRouter();
   const metricState = useAsyncState();
   const [metricQuery, setMetricQuery] = useState(() => deriveMetricQuery(initialReference));
   const [metricSeries, setMetricSeries] = useState<MetricSeries[]>([]);
@@ -45,9 +48,7 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
   const [visualizationType, setVisualizationType] = useState<"timeseries" | "histogram" | "gauge">("timeseries");
   const [gaugeStatistic, setGaugeStatistic] = useState<"latest" | "avg" | "min" | "max">("latest");
   const { start, succeed, fail } = metricState;
-  const autoRunRef = useRef(autoRun);
-
-
+  const { hasIntegrations, loading: integrationsLoading } = useIntegrations();
 
   const setRangeMinutes = (mins: number) => {
     const end = new Date();
@@ -84,7 +85,7 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
     try {
       const stepSeconds = Number(query.stepSeconds);
       const resolvedStep = Number.isFinite(stepSeconds) && stepSeconds > 0 ? stepSeconds : 30;
-      const expression: Record<string, unknown> = { metricName: query.expression || "up" };
+      const expression: Record<string, unknown> = { metricName: query.expression };
       if (aggregation) expression.aggregation = aggregation;
       if (groupBy) expression.groupBy = groupBy.split(",").map(s => s.trim()).filter(Boolean);
       const payload: Record<string, unknown> = {
@@ -111,41 +112,101 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
     setMetricQuery(deriveMetricQuery(initialReference));
   }
 
+  // State for available metrics to determine a valid default
+  const [availableMetrics, setAvailableMetrics] = useState<MetricDescriptor[]>([]);
+  const [metricsLoaded, setMetricsLoaded] = useState(false);
+
   useEffect(() => {
-    if (initialReference && autoRun) {
-      const timer = setTimeout(() => {
-        void executeMetricQuery(deriveMetricQuery(initialReference));
-      }, 0);
-      return () => clearTimeout(timer);
+    // Fetch available metrics on mount
+    import("@/app/lib/metrics").then(({ describeMetrics }) => {
+      describeMetrics().then(metrics => {
+        setAvailableMetrics(metrics);
+        setMetricsLoaded(true);
+      }).catch(() => {
+        // If listing fails, we can still try to run the query, or let the user try.
+        setMetricsLoaded(true);
+      });
+    });
+  }, []);
+
+  useEffect(() => {
+    // Wait for metrics to be loaded before auto-running
+    if (!metricsLoaded) return;
+
+    if (autoRun) {
+      // If the current query is empty, pick first available metric.
+      let queryToRun = metricQuery;
+      if (!metricQuery.expression && availableMetrics.length > 0) {
+        const firstMetric = availableMetrics[0];
+        // We update the state, but safely execute the modified query directly
+        setMetricQuery(q => ({ ...q, expression: firstMetric.name }));
+
+        // Auto-select visualization type based on metric type
+        if (firstMetric.type === "histogram") {
+          setVisualizationType("histogram");
+        } else if (firstMetric.type === "gauge") {
+          setVisualizationType("gauge");
+        } else {
+          setVisualizationType("timeseries");
+        }
+
+        queryToRun = { ...metricQuery, expression: firstMetric.name };
+      }
+      void executeMetricQuery(queryToRun);
     }
-  }, [initialReference, executeMetricQuery, autoRun]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [metricsLoaded]); // Run once when metrics are loaded (or if autoRun changes, but we treat it as init)
+
 
   const runMetricQuery = async () => {
     await executeMetricQuery(metricQuery);
   };
 
-  useEffect(() => {
-    if (!autoRunRef.current) return;
-    autoRunRef.current = false;
-    const frame = requestAnimationFrame(() => {
-      void executeMetricQuery(metricQuery);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [executeMetricQuery, metricQuery]);
+  const resetToDefaults = () => {
+    const defaultQuery = deriveMetricQuery();
+    setMetricQuery(defaultQuery);
+    setAggregation("");
+    setGroupBy("");
+    setVisualizationType("timeseries");
+    // Optionally auto-run after reset
+    void executeMetricQuery(defaultQuery);
+  };
 
+  // Check if current state matches default state (approximately)
+  const isDefaultState = () => {
+    // Logic for "is default" might be complex due to timestamps continuously changing.
+    // We'll treat "default" as "metricName is empty" and aggregation/group by are empty.
+    return (
+      !metricQuery.expression &&
+      !aggregation &&
+      !groupBy &&
+      !metricQuery.scope
+    );
+  };
   return (
     <Section
       id="metrics-panel"
       title="Query"
       action={
         !readOnly ? (
-          <button
-            type="button"
-            onClick={runMetricQuery}
-            className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
-          >
-            Run query
-          </button>
+          <div className="flex gap-2">
+            {!isDefaultState() && (
+              <button
+                type="button"
+                onClick={resetToDefaults}
+                className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+              >
+                Reset to Default
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={runMetricQuery}
+              className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
+            >
+              Run query
+            </button>
+          </div>
         ) : null
       }
     >
@@ -198,7 +259,7 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
                 key={m}
                 type="button"
                 onClick={() => setRangeMinutes(m)}
-                className="rounded-full border border-[#8fdede] bg-white px-2 py-1 transition hover:border-[#55cfd0]"
+                className="rounded-full border border-slate-200 bg-white px-2 py-1 transition hover:border-[#55cfd0]"
               >
                 last {m >= 60 ? `${m / 60} h` : `${m} m`}
               </button>
@@ -257,7 +318,7 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
                   />
                 }
               />
-              
+
               <div className="border-t border-slate-200 pt-4">
                 <ScopeInputs
                   scope={metricQuery.scope}
@@ -294,8 +355,8 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
                       type="button"
                       onClick={() => setGaugeStatistic(stat)}
                       className={`rounded px-3 py-1 text-xs font-medium transition ${gaugeStatistic === stat
-                          ? "bg-white text-slate-900 shadow-sm"
-                          : "text-slate-500 hover:text-slate-700"
+                        ? "bg-white text-slate-900 shadow-sm"
+                        : "text-slate-500 hover:text-slate-700"
                         }`}
                     >
                       {stat.charAt(0).toUpperCase() + stat.slice(1)}
@@ -306,12 +367,19 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
             )}
           </div>
           <div className="flex flex-wrap items-center gap-3 justify-end">
-            {metricState.error ? <Pill label={metricState.error} tone="error" /> : null}
+            {metricState.error ? null : null} {/* Error handled by EmptyState below */}
           </div>
         </>
       )}
       <div className="flex max-h-80 flex-col gap-4 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
-        {metricState.loading && metricSeries.length === 0 ? (
+        {metricState.error ? (
+          <EmptyState
+            title="Error loading metrics"
+            description={metricState.error}
+            variant="error"
+            action={{ label: "Retry", onClick: runMetricQuery }}
+          />
+        ) : (metricState.loading || integrationsLoading) && metricSeries.length === 0 ? (
           <div className="animate-fade-in space-y-4">
             {[1, 2].map((i) => (
               <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-4 py-4">
@@ -328,16 +396,20 @@ export function MetricsPanel({ initialReference, autoRun = false, readOnly = fal
               </div>
             ))}
           </div>
+        ) : !hasIntegrations ? (
+          <EmptyState
+            title="No integration configured"
+            description="Connect an integration to start monitoring metrics."
+            variant="no-integration"
+            action={{ label: "Configure Integration", onClick: () => router.push("/settings") }} // Note: router needs to be available
+          />
         ) : metricSeries.length === 0 ? (
-          <div className="animate-fade-in rounded-xl border-2 border-dashed border-slate-200 bg-white px-6 py-8 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-teal-50">
-              <svg className="h-6 w-6 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-slate-700">No metric data</p>
-            <p className="mt-1 text-xs text-slate-500">Run a query to visualize metrics</p>
-          </div>
+          <EmptyState
+            title={readOnly ? "No metric data" : isDefaultState() ? "No metrics found" : "No matching metrics"}
+            description={readOnly ? "No metrics to display." : isDefaultState() ? "There are no metrics for the default query." : "Try adjusting your filters or query."}
+            variant={readOnly ? "default" : "no-data"}
+            action={!readOnly && !isDefaultState() ? { label: "Reset to Default", onClick: resetToDefaults } : { label: "Run Query", onClick: runMetricQuery }}
+          />
         ) : (
           metricSeries.map((series) => {
             const stats = summarize(series);
