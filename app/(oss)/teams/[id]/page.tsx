@@ -164,8 +164,8 @@ export default function TeamDetailPage() {
             Back to all teams
           </Link>
           {team?.parent && (
-            <Link 
-              href={`/teams/${team.parent}`} 
+            <Link
+              href={`/teams/${team.parent}`}
               className="text-xs font-semibold text-blue-600 underline-offset-4 hover:underline"
             >
               Parent: {team.parent}
@@ -420,18 +420,20 @@ export default function TeamDetailPage() {
         ) : null}
 
         {activeTab === "alerts" ? (
-          <AlertsPanel 
-            initialQuery={team?.id ? { scope: { team: team.id } } : {}} 
-            readOnly={true} 
+          <AlertsPanel
+            initialQuery={team?.id ? { scope: { team: team.id } } : {}}
+            readOnly={true}
           />
         ) : null}
 
         {activeTab === "logs" ? (
           <LogsPanel
+            key={team?.id}
             initialReference={{
               expression: { search: "*" },
               start: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
               end: new Date().toISOString(),
+              scope: team?.id ? { team: team.id } : undefined,
             }}
             autoRun={true}
             readOnly={true}
@@ -440,11 +442,13 @@ export default function TeamDetailPage() {
 
         {activeTab === "metrics" ? (
           <MetricsPanel
+            key={team?.id}
             initialReference={{
-              expression: { metricName: team?.name ? `team="${team.name}"` : "up" },
+              expression: { metricName: "" },
               start: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
               end: new Date().toISOString(),
               step: 60,
+              scope: team?.id ? { team: team.id } : undefined,
             }}
             autoRun={true}
             readOnly={true}
@@ -452,8 +456,9 @@ export default function TeamDetailPage() {
         ) : null}
 
         {activeTab === "tickets" ? (
-          <TicketsPanel 
-            readOnly={true} 
+          <TicketsPanel
+            key={team?.id}
+            readOnly={true}
             initialScope={team?.id ? { team: team.id } : undefined}
           />
         ) : null}

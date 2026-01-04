@@ -15,18 +15,18 @@ const computeReference = (params: URLSearchParams): MetricReference | undefined 
   const step = params.get("step") || undefined;
   const scopeStr = params.get("scope");
   const scope = parseScope(scopeStr);
-  
+
   // Check if we have any meaningful data
   if (!expression.metricName && !start && !end && !step && !scope) {
     return undefined;
   }
-  
-  return { 
-    expression, 
-    start, 
-    end, 
-    step: step ? Number(step) : undefined, 
-    scope 
+
+  return {
+    expression,
+    start,
+    end,
+    step: step ? Number(step) : undefined,
+    scope
   };
 };
 
@@ -37,7 +37,7 @@ function MetricsContent() {
   const reference = useMemo(() => computeReference(searchParams), [searchParams]);
   const key = searchParams.toString() || "metrics-root";
 
-  return <MetricsPanel key={key} initialReference={reference} autoRun={Boolean(reference)} />;
+  return <MetricsPanel key={key} initialReference={reference} autoRun />;
 }
 
 export default function MetricsPage() {

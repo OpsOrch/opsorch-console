@@ -1,17 +1,21 @@
-"use client";
-
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, AlertQuery } from "@/app/lib/types";
 import { queryAlerts } from "@/app/lib/alerts";
 import { Badge, Field, Section, TextInput } from "@/app/lib/ui";
 import { formatDate } from "@/app/lib/utils";
-import { useAsyncState } from "@/app/lib/hooks";
+import { DEFAULT_QUERY_LIMIT } from "@/app/lib/consts";
+import { useAsyncState, useIntegrations } from "@/app/lib/hooks";
 import { ScopeInputs } from "@/app/components/ScopeInputs";
+import { EmptyState } from "@/app/components/EmptyState";
 
 type AlertsPanelProps = {
     initialQuery?: Partial<AlertQuery>;
     readOnly?: boolean;
+};
+
+const DEFAULT_QUERY: Partial<AlertQuery> = {
+    limit: DEFAULT_QUERY_LIMIT,
 };
 
 export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps = {}) {
@@ -19,6 +23,7 @@ export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps
     const [alerts, setAlerts] = useState<Alert[]>([]);
     const alertState = useAsyncState();
     const { start, succeed, fail } = alertState;
+    const { hasIntegrations, loading: integrationsLoading } = useIntegrations();
     const [showAdvanced, setShowAdvanced] = useState(Boolean(initialQuery?.scope || initialQuery?.statuses || initialQuery?.severities));
 
     const [alertQuery, setAlertQuery] = useState<Partial<AlertQuery>>(() => ({
@@ -26,7 +31,7 @@ export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps
         statuses: initialQuery?.statuses,
         severities: initialQuery?.severities,
         scope: initialQuery?.scope,
-        limit: initialQuery?.limit || 100,
+        limit: initialQuery?.limit || DEFAULT_QUERY_LIMIT,
     }));
 
     const [statusesInput, setStatusesInput] = useState(() => initialQuery?.statuses?.join(", ") || "");
@@ -56,6 +61,23 @@ export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps
         executeQuery(alertQuery);
     };
 
+    const resetToDefaults = () => {
+        setAlertQuery(DEFAULT_QUERY);
+        setStatusesInput("");
+        setSeveritiesInput("");
+        executeQuery(DEFAULT_QUERY);
+    };
+
+    const isDefaultQuery = () => {
+        return (
+            !alertQuery.query &&
+            !statusesInput &&
+            !severitiesInput &&
+            !alertQuery.scope &&
+            alertQuery.limit === DEFAULT_QUERY_LIMIT
+        );
+    };
+
     useEffect(() => {
         const timer = setTimeout(() => {
             executeQuery(alertQuery);
@@ -69,23 +91,28 @@ export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps
             title={readOnly ? "Alerts" : "Search"}
             description={readOnly ? undefined : "Query alerts by status, severity, and scope."}
             action={
-                !readOnly ? (
+                <div className="flex gap-2">
+                    {!readOnly && !isDefaultQuery() && (
+                        <button
+                            type="button"
+                            onClick={resetToDefaults}
+                            className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                        >
+                            Reset to Default
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={runQuery}
-                        className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
+                        className={
+                            !readOnly
+                                ? "rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
+                                : "rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-medium text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+                        }
                     >
-                        Run query
+                        {!readOnly ? "Run query" : "Refresh"}
                     </button>
-                ) : (
-                    <button
-                        type="button"
-                        onClick={runQuery}
-                        className="rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-medium text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
-                    >
-                        Refresh
-                    </button>
-                )
+                </div>
             }
         >
             {!readOnly && (
@@ -107,7 +134,7 @@ export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps
                             <TextInput
                                 value={String(alertQuery.limit || "")}
                                 onChange={(v) => setAlertQuery((q) => ({ ...q, limit: v ? Number(v) : undefined }))}
-                                placeholder="100"
+                                placeholder="20"
                                 type="number"
                             />
                         }
@@ -160,9 +187,12 @@ export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps
                     )}
 
                     {alertState.error ? (
-                        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800">
-                            Error loading alerts: {alertState.error}
-                        </div>
+                        <EmptyState
+                            title="Error loading alerts"
+                            description={alertState.error}
+                            variant="error"
+                            action={{ label: "Retry", onClick: runQuery }}
+                        />
                     ) : null}
                 </>
             )}
@@ -176,7 +206,7 @@ export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps
                 )}
 
                 <div className="flex max-h-[40rem] flex-col gap-3 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    {alertState.loading && alerts.length === 0 ? (
+                    {(alertState.loading || integrationsLoading) && alerts.length === 0 ? (
                         <div className="animate-fade-in space-y-3">
                             {[1, 2, 3].map((i) => (
                                 <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-4 py-3">
@@ -191,16 +221,20 @@ export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps
                                 </div>
                             ))}
                         </div>
+                    ) : !hasIntegrations ? (
+                        <EmptyState
+                            title="No integration configured"
+                            description="Connect an integration to start monitoring alerts."
+                            variant="no-integration"
+                            action={{ label: "Configure Integration", onClick: () => router.push("/settings") }}
+                        />
                     ) : alerts.length === 0 ? (
-                        <div className="animate-fade-in rounded-xl border-2 border-dashed border-slate-200 bg-white px-6 py-8 text-center">
-                            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-slate-100">
-                                <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-                                </svg>
-                            </div>
-                            <p className="text-sm font-medium text-slate-700">No alerts found</p>
-                            <p className="mt-1 text-xs text-slate-500">{readOnly ? "Everything looks good!" : "Try adjusting your search criteria"}</p>
-                        </div>
+                        <EmptyState
+                            title={readOnly ? "No alerts" : isDefaultQuery() ? "No alerts found" : "No matching alerts"}
+                            description={readOnly ? "Everything looks good!" : isDefaultQuery() ? "There are no alerts in the system currently." : "Try adjusting your search filters or resetting to default."}
+                            variant={readOnly ? "default" : "no-data"}
+                            action={!readOnly && !isDefaultQuery() ? { label: "Reset to Default", onClick: resetToDefaults } : { label: "Refresh", onClick: runQuery }}
+                        />
                     ) : (
                         alerts.map((alert) => {
                             const severityColors = {

@@ -4,6 +4,7 @@ import { queryTeams } from "@/app/lib/teams";
 import { useAsyncState } from "@/app/lib/hooks";
 import { Team } from "@/app/lib/types";
 import { Badge, Field, Pill, Section, TextInput } from "@/app/lib/ui";
+import { EmptyState } from "@/app/components/EmptyState";
 
 type TeamsPanelProps = {
   initialName?: string;
@@ -27,13 +28,26 @@ export function TeamsPanel({ initialName }: TeamsPanelProps = {}) {
     }
   };
 
-  // Auto-run search if initialName is provided
+  // Auto-run search on mount
   useEffect(() => {
-    if (initialName) {
-      runSearch();
-    }
+    void runSearch();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialName]);
+  }, []);
+
+  const resetToDefaults = () => {
+    setTeamName("");
+    requestAnimationFrame(() => {
+      teamState.start();
+      queryTeams({})
+        .then(res => {
+          setTeams(res);
+          teamState.succeed();
+        })
+        .catch(err => teamState.fail(err));
+    });
+  };
+
+  const isDefaultQuery = () => !teamName;
 
   const getTeamIcon = (team: Team) => {
     const teamType = team.tags?.type;
@@ -74,13 +88,24 @@ export function TeamsPanel({ initialName }: TeamsPanelProps = {}) {
     <Section
       title="Teams"
       action={
-        <button
-          type="button"
-          onClick={runSearch}
-          className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
-        >
-          Search
-        </button>
+        <div className="flex gap-2">
+          {!isDefaultQuery() && (
+            <button
+              type="button"
+              onClick={resetToDefaults}
+              className="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+            >
+              Reset
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={runSearch}
+            className="rounded-lg bg-[#55cfd0] px-3 py-2 text-xs font-semibold text-[#0b1517] shadow-sm transition hover:bg-[#3fb8b8]"
+          >
+            Search
+          </button>
+        </div>
       }
     >
       <div className="grid grid-cols-[1fr_auto] items-end gap-3">
@@ -97,7 +122,14 @@ export function TeamsPanel({ initialName }: TeamsPanelProps = {}) {
       </div>
       {teamState.error ? <Pill label={teamState.error} tone="error" /> : null}
       <div className="grid max-h-72 gap-3 overflow-y-auto rounded-xl border border-slate-200 bg-slate-50 p-3">
-        {teamState.loading && teams.length === 0 ? (
+        {teamState.error ? (
+          <EmptyState
+            title="Error loading teams"
+            description={teamState.error}
+            variant="error"
+            action={{ label: "Retry", onClick: runSearch }}
+          />
+        ) : teamState.loading && teams.length === 0 ? (
           <div className="animate-fade-in space-y-3">
             {[1, 2, 3].map((i) => (
               <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-4 py-3">
@@ -110,15 +142,12 @@ export function TeamsPanel({ initialName }: TeamsPanelProps = {}) {
             ))}
           </div>
         ) : teams.length === 0 ? (
-          <div className="animate-fade-in rounded-xl border-2 border-dashed border-slate-200 bg-white px-6 py-8 text-center">
-            <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-blue-50">
-              <svg className="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-              </svg>
-            </div>
-            <p className="text-sm font-medium text-slate-700">No teams found</p>
-            <p className="mt-1 text-xs text-slate-500">Click &quot;Search&quot; to fetch teams</p>
-          </div>
+          <EmptyState
+            title={isDefaultQuery() ? "No teams found" : "No matching teams"}
+            description={isDefaultQuery() ? "There are no teams in the system." : "Try adjusting your search criteria or resetting to default."}
+            variant="no-data"
+            action={!isDefaultQuery() ? { label: "Reset to Default", onClick: resetToDefaults } : { label: "Refresh", onClick: runSearch }}
+          />
         ) : (
           teams.map((team) => (
             <button
@@ -134,10 +163,10 @@ export function TeamsPanel({ initialName }: TeamsPanelProps = {}) {
                 <div className="flex items-center gap-2">
                   <p className="font-semibold text-slate-900 group-hover:text-[#0f5f66]">{team.name}</p>
                   {team.tags?.type && (
-                    <Badge 
-                      label={team.tags.type} 
-                      variant={team.tags.type === "department" ? "default" : "info"} 
-                      size="sm" 
+                    <Badge
+                      label={team.tags.type}
+                      variant={team.tags.type === "department" ? "default" : "info"}
+                      size="sm"
                     />
                   )}
                 </div>
@@ -172,6 +201,6 @@ export function TeamsPanel({ initialName }: TeamsPanelProps = {}) {
           ))
         )}
       </div>
-    </Section>
+    </Section >
   );
 }

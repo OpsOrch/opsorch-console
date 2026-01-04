@@ -30,7 +30,7 @@ function LogsContent() {
   const reference = useMemo(() => computeReference(searchParams), [searchParams]);
   const key = searchParams.toString() || "logs-root";
 
-  return <LogsPanel key={key} initialReference={reference} autoRun={Boolean(reference)} />;
+  return <LogsPanel key={key} initialReference={reference} autoRun={true} />;
 }
 
 export default function LogsPage() {

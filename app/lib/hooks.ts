@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect } from "react";
 
 type AsyncState = { loading: boolean; error: string };
 
@@ -38,4 +38,19 @@ export function useAsyncState(args?: AsyncStateArgs) {
     ...state,
     ...controls,
   };
+}
+
+export function useIntegrations() {
+  const [hasIntegrations, setHasIntegrations] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Mock integration check
+    const checkIntegrations = async () => {
+      await new Promise(resolve => setTimeout(resolve, 500));
+      setHasIntegrations(true); // Default to true for now
+    };
+    checkIntegrations();
+  }, []);
+
+  return { hasIntegrations, loading: hasIntegrations === null };
 }

@@ -222,6 +222,7 @@ export default function ServiceDetailPage() {
               expression: { search: "*" },
               start: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
               end: new Date().toISOString(),
+              scope,
             }}
             autoRun={true}
             readOnly={true}
@@ -231,10 +232,11 @@ export default function ServiceDetailPage() {
         {activeTab === "metrics" ? (
           <MetricsPanel
             initialReference={{
-              expression: { metricName: serviceSearchTerm ? `service="${serviceSearchTerm}"` : "up" },
+              expression: { metricName: "" },
               start: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
               end: new Date().toISOString(),
               step: 60,
+              scope,
             }}
             autoRun={true}
             readOnly={true}

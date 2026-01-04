@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { requestJSON } from "@/app/lib/api";
-import { useAsyncState } from "@/app/lib/hooks";
+import { useAsyncState, useIntegrations } from "@/app/lib/hooks";
 import { Ticket, QueryScope } from "@/app/lib/types";
 import { formatDate, stringify } from "@/app/lib/utils";
+import { DEFAULT_QUERY_LIMIT } from "@/app/lib/consts";
 import { CodeBlock, Field, Pill, Section, Select, TextInput } from "@/app/lib/ui";
 import { TicketCreateModal } from "./TicketCreateModal";
+import { EmptyState } from "@/app/components/EmptyState";
 
 type TicketsPanelProps = {
   initialTicketId?: string;
@@ -16,6 +18,7 @@ type TicketsPanelProps = {
 export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }: TicketsPanelProps = {}) {
   const router = useRouter();
   const ticketState = useAsyncState();
+  const { hasIntegrations, loading: integrationsLoading } = useIntegrations();
   // const [ticketForm, setTicketForm] = useState({ title: "", description: "", assignees: "", reporter: "" }); // Removed
   const [ticketStatusUpdate, setTicketStatusUpdate] = useState("resolved");
   const [tickets, setTickets] = useState<Ticket[]>([]);
@@ -24,7 +27,7 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
   const [searchStatuses, setSearchStatuses] = useState("");
   const [searchAssignee, setSearchAssignee] = useState("");
   const [searchReporter, setSearchReporter] = useState("");
-  const [searchLimit, setSearchLimit] = useState("25");
+  const [searchLimit, setSearchLimit] = useState(String(DEFAULT_QUERY_LIMIT));
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const { start: startTicketAction, succeed: finishTicketAction, fail: failTicketAction } = ticketState;
 
@@ -135,20 +138,46 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
 
   useEffect(() => {
     if (!initialTicketId) return;
-    const frame = requestAnimationFrame(() => {
-      loadTicketFromReference(initialTicketId);
-    });
-    return () => cancelAnimationFrame(frame);
+    void loadTicketFromReference(initialTicketId);
   }, [initialTicketId, loadTicketFromReference]);
 
-  // Auto-run search in readOnly mode
+  const resetToDefaults = () => {
+    setSearchText("");
+    setSearchStatuses("");
+    setSearchAssignee("");
+    setSearchReporter("");
+    setSearchLimit(String(DEFAULT_QUERY_LIMIT));
+    // trigger a search with default values
+    ticketState.start();
+    const body = { limit: DEFAULT_QUERY_LIMIT };
+    requestJSON<Ticket[]>("/tickets/query", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }).then(res => {
+      setTickets(res);
+      setSelectedTicket(res[0] || null);
+      ticketState.succeed();
+    }).catch(err => ticketState.fail(err));
+  };
+
+  const isDefaultQuery = () => {
+    return (
+      !searchText &&
+      !searchStatuses &&
+      !searchAssignee &&
+      !searchReporter &&
+      searchLimit === String(DEFAULT_QUERY_LIMIT)
+    );
+  };
+
+  // Auto-run search on mount
   useEffect(() => {
-    if (!readOnly || !initialScope) return;
-    const frame = requestAnimationFrame(() => {
-      void runSearch();
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [readOnly, initialScope]); // eslint-disable-line react-hooks/exhaustive-deps
+    // initialScope is available in scope of runSearch via closure if we use it directly,
+    // or we can just rely on the fact that runSearch uses state which is initialized.
+    void runSearch();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
 
   return (
     <Section
@@ -188,13 +217,24 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
                 />
               }
             />
-            <button
-              type="button"
-              onClick={runSearch}
-              className="h-fit rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-semibold text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
-            >
-              Search
-            </button>
+            <div className="flex gap-2">
+              {!readOnly && !isDefaultQuery() && (
+                <button
+                  type="button"
+                  onClick={resetToDefaults}
+                  className="h-fit rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-700 shadow-sm transition hover:bg-slate-50"
+                >
+                  Reset
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={runSearch}
+                className="h-fit rounded-lg border border-[#8fdede] bg-white px-3 py-2 text-xs font-semibold text-[#0f1a1d] shadow-sm transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+              >
+                Search
+              </button>
+            </div>
           </div>
           <div className="grid gap-2 md:grid-cols-3">
             <Field
@@ -212,14 +252,21 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
           </div>
           <Field
             label="Limit"
-            input={<TextInput value={searchLimit} onChange={setSearchLimit} type="number" placeholder="25" />}
+            input={<TextInput value={searchLimit} onChange={setSearchLimit} type="number" placeholder="20" />}
           />
         </div>
       )}
 
       <div className={readOnly ? "grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm" : "grid gap-2 rounded-xl border border-slate-200 bg-white/80 p-3 text-sm"}>
         <div className="flex flex-col gap-2 max-h-52 overflow-y-auto">
-          {ticketState.loading && tickets.length === 0 ? (
+          {ticketState.error ? (
+            <EmptyState
+              title="Error loading tickets"
+              description={ticketState.error}
+              variant="error"
+              action={{ label: "Retry", onClick: runSearch }}
+            />
+          ) : (ticketState.loading || integrationsLoading) && tickets.length === 0 ? (
             <div className="animate-fade-in space-y-2">
               {[1, 2, 3].map((i) => (
                 <div key={i} className="animate-pulse rounded-lg border border-slate-200 bg-white/80 px-3 py-2">
@@ -231,16 +278,20 @@ export function TicketsPanel({ initialTicketId, readOnly = false, initialScope }
                 </div>
               ))}
             </div>
+          ) : !hasIntegrations ? (
+            <EmptyState
+              title="No integration configured"
+              description="Connect an integration to manage tickets."
+              variant="no-integration"
+              action={{ label: "Configure Integration", onClick: () => router.push("/settings") }}
+            />
           ) : tickets.length === 0 ? (
-            <div className="animate-fade-in rounded-lg border-2 border-dashed border-slate-200 bg-white px-4 py-6 text-center">
-              <div className="mx-auto mb-2 flex h-10 w-10 items-center justify-center rounded-full bg-purple-50">
-                <svg className="h-5 w-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
-                </svg>
-              </div>
-              <p className="text-xs font-medium text-slate-700">No tickets found</p>
-              <p className="mt-0.5 text-xs text-slate-500">Try searching or create a new ticket</p>
-            </div>
+            <EmptyState
+              title={readOnly ? "No tickets" : isDefaultQuery() ? "No tickets found" : "No matching tickets"}
+              description={readOnly ? "No tickets to display." : isDefaultQuery() ? "There are no tickets in the system currently." : "Try adjusting your search filters or resetting to default."}
+              variant={readOnly ? "default" : "no-data"}
+              action={!readOnly && !isDefaultQuery() ? { label: "Reset to Default", onClick: resetToDefaults } : { label: "Refresh", onClick: runSearch }}
+            />
           ) : (
             tickets.map((t) => (
               <button

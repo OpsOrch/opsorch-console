@@ -118,7 +118,7 @@ export function encodeMetricExpression(expression: MetricExpression): Record<str
  * Decodes URL parameters to a MetricExpression
  */
 export function decodeMetricExpression(params: URLSearchParams): MetricExpression {
-  const metricName = params.get('metricName') || 'up';
+  const metricName = params.get('metricName') || '';
   const expression: MetricExpression = { metricName };
 
   const aggregation = params.get('aggregation');

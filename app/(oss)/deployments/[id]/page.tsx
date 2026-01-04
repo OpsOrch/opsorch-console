@@ -15,9 +15,9 @@ import { CodeBlock, Pill, Section } from "@/app/lib/ui";
 
 const tabs = [
   { id: "overview", label: "Overview" },
+  { id: "alerts", label: "Alerts" },
   { id: "logs", label: "Logs" },
   { id: "metrics", label: "Metrics" },
-  { id: "alerts", label: "Alerts" },
   { id: "tickets", label: "Tickets" },
 ];
 
@@ -224,23 +224,20 @@ export default function DeploymentDetailPage() {
         </Section>
 
         {/* Navigation Tabs */}
-        <div className="border-b border-slate-200">
-          <nav className="-mb-px flex space-x-8">
-            {tabs.map((tab) => (
-              <button
-                key={tab.id}
-                type="button"
-                onClick={() => setActiveTab(tab.id)}
-                className={`whitespace-nowrap border-b-2 py-2 px-1 text-sm font-medium transition ${
-                  activeTab === tab.id
-                    ? "border-[#55cfd0] text-[#0f5f66]"
-                    : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700"
+        <div className="flex flex-wrap gap-2 rounded-2xl border border-slate-200 bg-white/80 p-2">
+          {tabs.map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${activeTab === tab.id
+                ? "bg-[#55cfd0] text-[#0b1517] shadow"
+                : "text-slate-600 hover:bg-slate-100"
                 }`}
-              >
-                {tab.label}
-              </button>
-            ))}
-          </nav>
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
 
         {/* Tab Content */}
@@ -281,9 +278,9 @@ export default function DeploymentDetailPage() {
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800"
                       >
-                        {String(link).includes("grafana") ? "Grafana Dashboard" : 
-                         String(link).includes("datadog") ? "Datadog Dashboard" :
-                         String(link).includes("newrelic") ? "New Relic Dashboard" : "Monitoring Link"}
+                        {String(link).includes("grafana") ? "Grafana Dashboard" :
+                          String(link).includes("datadog") ? "Datadog Dashboard" :
+                            String(link).includes("newrelic") ? "New Relic Dashboard" : "Monitoring Link"}
                         <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
                         </svg>

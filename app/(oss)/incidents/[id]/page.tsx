@@ -287,7 +287,7 @@ export default function IncidentDetailPage() {
         {activeTab === "metrics" ? (
           <MetricsPanel
             initialReference={{
-              expression: { metricName: deriveScope(incident).service ? `service="${deriveScope(incident).service}"` : "up" },
+              expression: { metricName: deriveScope(incident).service ? `service="${deriveScope(incident).service}"` : "" },
               start: new Date(Date.now() - 60 * 60 * 1000).toISOString(),
               end: new Date().toISOString(),
               step: 60,
