@@ -193,14 +193,58 @@ export type CopilotReferences = {
 
 export type CopilotAnswer = {
   conclusion: string;
-  evidence?: string[];
   missing?: string[];
-  actions?: { label: string; type: string; payload?: unknown }[];
   references?: CopilotReferences;
-  links?: CopilotLink[];
-  data?: unknown;
   confidence?: number;
   chatId?: string;
+  executionTrace?: TurnExecutionTrace;
+};
+
+// Execution trace types for Copilot answer traceability
+export type JsonValue =
+  | string
+  | number
+  | boolean
+  | null
+  | JsonObject
+  | JsonValue[];
+export type JsonObject = { [key: string]: JsonValue };
+
+export type TurnExecutionTrace = {
+  traceId: string;
+  startTime: number;
+  endTime: number;
+  totalDurationMs: number;
+  iterations: IterationTrace[];
+};
+
+export type IterationTrace = {
+  iterationNumber: number;
+  plannedTools: ToolCall[];
+  heuristicModifications: HeuristicModification[];
+  toolExecutions: ToolExecutionTrace[];
+  durationMs: number;
+};
+
+export type ToolExecutionTrace = {
+  toolName: string;
+  arguments?: JsonObject;
+  cacheHit: boolean;
+  executionTimeMs: number;
+  success: boolean;
+  error?: string;
+};
+
+export type ToolCall = {
+  name: string;
+  arguments: JsonObject;
+};
+
+export type HeuristicModification = {
+  heuristicName: string;
+  action: "inject" | "modify" | "remove";
+  reason: string;
+  affectedTools?: string[];
 };
 
 export type ChatConversation = {

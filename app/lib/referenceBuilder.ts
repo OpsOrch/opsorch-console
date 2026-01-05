@@ -1,5 +1,131 @@
-import { LogReference, MetricReference, AlertQuery, IncidentQuery, DeploymentReference } from "./types";
+import { LogReference, MetricReference, AlertQuery, IncidentQuery, DeploymentReference, QueryScope } from "./types";
 import { encodeLogExpression, encodeMetricExpression, encodeAlertQuery, encodeIncidentQuery, encodeDeploymentQuery } from "./utils";
+
+/**
+ * Builds a URL href for a tool execution based on tool name and arguments.
+ * Maps tool executions to their corresponding Console views.
+ * Returns null for unknown tools.
+ */
+export function buildToolExecutionHref(
+  toolName: string,
+  args: Record<string, unknown>
+): string | null {
+  switch (toolName) {
+    case "query-incidents":
+      return buildIncidentHref(args as Partial<IncidentQuery>);
+
+    case "get-incident":
+      // Tool uses 'id' not 'incidentId'
+      if (args.id) {
+        return `/incidents/${args.id}`;
+      }
+      if (args.incidentId) {
+        return `/incidents/${args.incidentId}`;
+      }
+      return "/incidents";
+
+    case "query-alerts":
+      return buildAlertHref(args as Partial<AlertQuery>);
+
+    case "get-alert":
+      if (args.id) {
+        return `/alerts/${args.id}`;
+      }
+      if (args.alertId) {
+        return `/alerts/${args.alertId}`;
+      }
+      return "/alerts";
+
+    case "query-logs":
+      // Handle expression as object with search field
+      const logExpression = args.expression as Record<string, unknown> | undefined;
+      return buildLogHref({
+        expression: { 
+          search: logExpression?.search as string || args.query as string,
+          filters: logExpression?.filters as LogReference["expression"]["filters"],
+          severityIn: logExpression?.severityIn as string[],
+        },
+        start: args.start as string,
+        end: args.end as string,
+        scope: args.scope as QueryScope,
+      });
+
+    case "query-metrics":
+      // Handle expression as object with metricName field
+      const metricExpression = args.expression as Record<string, unknown> | undefined;
+      return buildMetricHref({
+        expression: typeof metricExpression === 'object' ? {
+          metricName: metricExpression?.metricName as string || '',
+          aggregation: metricExpression?.aggregation as string,
+          filters: metricExpression?.filters as MetricReference["expression"]["filters"],
+          groupBy: metricExpression?.groupBy as string[],
+        } : { metricName: String(args.expression || '') },
+        start: args.start as string,
+        end: args.end as string,
+        step: args.step as number,
+        scope: args.scope as QueryScope,
+      });
+
+    case "describe-metrics":
+      // describe-metrics returns metric descriptors, link to metrics view with scope
+      if (args.scope) {
+        const scope = args.scope as QueryScope;
+        if (scope.service) {
+          return `/metrics?scope=${encodeURIComponent(JSON.stringify(scope))}`;
+        }
+      }
+      return "/metrics";
+
+    case "query-services":
+      return "/services";
+
+    case "get-service":
+      if (args.id) {
+        return `/services/${args.id}`;
+      }
+      if (args.serviceId) {
+        return `/services/${args.serviceId}`;
+      }
+      return "/services";
+
+    case "query-tickets":
+      return "/tickets";
+
+    case "get-ticket":
+      if (args.id) {
+        return `/tickets?ticketId=${args.id}`;
+      }
+      if (args.ticketId) {
+        return `/tickets?ticketId=${args.ticketId}`;
+      }
+      return "/tickets";
+
+    case "query-deployments":
+      return buildDeploymentHref({ query: args as DeploymentReference["query"] });
+
+    case "get-deployment":
+      if (args.id) {
+        return `/deployments/${args.id}`;
+      }
+      if (args.deploymentId) {
+        return `/deployments/${args.deploymentId}`;
+      }
+      return "/deployments";
+
+    case "get-incident-timeline":
+      // Tool uses 'id' not 'incidentId'
+      if (args.id) {
+        return `/incidents/${args.id}?tab=timeline`;
+      }
+      if (args.incidentId) {
+        return `/incidents/${args.incidentId}?tab=timeline`;
+      }
+      return "/incidents";
+
+    default:
+      return null; // Unknown tool - no Console link
+  }
+}
 
 /**
  * Builds a URL href for a log reference with all query parameters
