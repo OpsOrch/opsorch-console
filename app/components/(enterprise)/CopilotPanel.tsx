@@ -1,10 +1,11 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { CopilotAnswer, CopilotReferences } from "@/app/lib/types";
+import { CopilotAnswer, CopilotReferences, TurnExecutionTrace } from "@/app/lib/types";
 import { useAsyncState } from "@/app/lib/hooks";
-import { Accordion, Field, Pill, Section, TextArea } from "@/app/lib/ui";
+import { Field, Pill, Section, TextArea } from "@/app/lib/ui";
 import { ConfidenceBar } from "@/app/components/(enterprise)/copilot/ConfidenceBar";
+import { CopilotConclusion } from "@/app/components/(enterprise)/copilot/CopilotConclusion";
 import { ResponseDetailsContent } from "@/app/components/(enterprise)/copilot/ResponseDetails";
 import { parseJsonString, stringifyData } from "@/app/lib/utils";
 
@@ -37,31 +38,27 @@ function normalizeAnswer(payload: CopilotApiResponse): CopilotAnswer {
     (structured && typeof structured === "object" ? stringifyData(structured) : undefined) ||
     "Copilot did not return a conclusion.";
 
-  const derivedData =
-    parsedDataField ??
-    answer.data ??
-    structured ??
-    contentArray;
-
   const derivedChatId = getChatId(answer) || getChatId(payload);
 
   const derivedReferences =
     answer.references ||
-    (derivedData && typeof derivedData === "object" && (derivedData as { references?: CopilotReferences }).references);
+    (parsedDataField && typeof parsedDataField === "object" && (parsedDataField as { references?: CopilotReferences }).references) ||
+    (contentArray && typeof contentArray === "object" && (contentArray as unknown as { references?: CopilotReferences }).references);
+
+  // Extract executionTrace from the answer
+  const derivedExecutionTrace = answer.executionTrace;
 
   console.log('[normalizeAnswer] answer.references:', answer.references);
-  console.log('[normalizeAnswer] derivedData:', derivedData);
   console.log('[normalizeAnswer] derivedReferences:', derivedReferences);
+  console.log('[normalizeAnswer] executionTrace:', derivedExecutionTrace);
 
   return {
     conclusion: derivedConclusion,
-    evidence: answer.evidence,
     missing: answer.missing,
-    actions: answer.actions,
     references: derivedReferences,
-    data: derivedData,
     confidence: answer.confidence,
     chatId: derivedChatId,
+    executionTrace: derivedExecutionTrace,
   };
 }
 
@@ -73,7 +70,6 @@ export function CopilotPanel({ initialChatId }: { initialChatId?: string }) {
   const [question, setQuestion] = useState("");
   const [chatId, setChatId] = useState<string | undefined>(initialChatId);
   const [turns, setTurns] = useState<CopilotTurn[]>([]);
-  const [openAccordions, setOpenAccordions] = useState<Set<string>>(new Set());
   const state = useAsyncState();
   const historyRef = useRef<HTMLDivElement | null>(null);
 
@@ -86,9 +82,6 @@ export function CopilotPanel({ initialChatId }: { initialChatId?: string }) {
   const ask = async () => {
     const trimmed = question.trim();
     if (!trimmed || state.loading) return;
-
-    // Close all accordions when sending a new message
-    setOpenAccordions(new Set());
 
     setTurns((prev) => [...prev, { id: makeId("user"), role: "user", text: trimmed }]);
     setQuestion("");
@@ -157,8 +150,8 @@ export function CopilotPanel({ initialChatId }: { initialChatId?: string }) {
             answer: {
               conclusion: t.assistantResponse,
               chatId: conversation.chatId,
-              // Map tool results to data so they can be inspected if needed
-              data: t.toolResults,
+              // Include executionTrace from stored turn for historical display
+              executionTrace: t.executionTrace as TurnExecutionTrace | undefined,
             },
           });
         }
@@ -262,28 +255,18 @@ export function CopilotPanel({ initialChatId }: { initialChatId?: string }) {
                       ) : null}
                     </div>
 
-                    <div className={`rounded-xl px-3 py-2.5 ${isCopilot ? "bg-slate-50/50" : "bg-white/60"}`}>
-                      <p className="whitespace-pre-line text-sm leading-relaxed text-slate-900">{turn.answer?.conclusion || turn.text}</p>
+                    <div className="px-3 pt-2 pb-0">
+                      {isCopilot ? (
+                        <CopilotConclusion text={turn.answer?.conclusion || turn.text} />
+                      ) : (
+                        <p className="whitespace-pre-line text-sm leading-relaxed text-slate-900">{turn.text}</p>
+                      )}
                     </div>
 
                     {isError ? null : isCopilot && turn.answer ? (
-                      <Accordion
-                        title="View Details"
-                        isOpen={openAccordions.has(turn.id)}
-                        onToggle={(isOpen) => {
-                          setOpenAccordions((prev) => {
-                            const next = new Set(prev);
-                            if (isOpen) {
-                              next.add(turn.id);
-                            } else {
-                              next.delete(turn.id);
-                            }
-                            return next;
-                          });
-                        }}
-                      >
+                      <div className="mt-0">
                         <ResponseDetailsContent answer={turn.answer} />
-                      </Accordion>
+                      </div>
                     ) : null}
                   </div>
                 </div>
