@@ -1,6 +1,5 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { CodeBlock } from "@/app/lib/ui";
-import { trace } from "next/dist/trace";
 
 export function CollapsibleCodeBlock({
     code,
@@ -16,13 +15,13 @@ export function CollapsibleCodeBlock({
     const [isExpanded, setIsExpanded] = useState(defaultOpen);
 
     return (
-         <div className="space-y-3">
+        <div className="space-y-3">
             <button
                 onClick={() => setIsExpanded(!isExpanded)}
                 className="flex w-full items-center justify-between text-left"
             >
                 <p className="text-[11px] font-semibold uppercase tracking-wide text-slate-500">
-                {title}
+                    {title}
                 </p>
                 <div className="flex items-center gap-2">
                     <svg
