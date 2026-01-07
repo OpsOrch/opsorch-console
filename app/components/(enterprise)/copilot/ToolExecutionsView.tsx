@@ -38,10 +38,6 @@ export function ToolExecutionsView({ trace }: ToolExecutionsViewProps) {
     (sum, it) => sum + it.plannedTools.length,
     0
   );
-  const totalHeuristics = trace.iterations.reduce(
-    (sum, it) => sum + it.heuristicModifications.length,
-    0
-  );
   const totalAddedTools = trace.iterations.reduce((sum, it) => {
     const added = it.heuristicModifications.flatMap((mod) =>
       mod.action === "inject" ? mod.affectedTools || [] : []
