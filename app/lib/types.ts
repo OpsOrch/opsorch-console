@@ -330,3 +330,67 @@ export type DeploymentReference = {
   query?: DeploymentQuery;
   deploymentId?: string;
 };
+// Orchestration types
+export type RunStatus = 'created' | 'running' | 'blocked' | 'completed' | 'failed' | 'cancelled';
+export type StepStatus = 'pending' | 'ready' | 'running' | 'blocked' | 'succeeded' | 'failed' | 'skipped' | 'cancelled';
+
+export type OrchestrationStep = {
+  id: string;
+  title: string;
+  description: string;
+  type: string;
+  dependsOn?: string[];
+  metadata: Record<string, unknown>;
+};
+
+export type OrchestrationStepState = {
+  stepId: string;
+  status: StepStatus;
+  startedAt?: string;
+  finishedAt?: string;
+  updatedAt: string;
+  actor?: string;
+  note?: string;
+  metadata: Record<string, unknown>;
+};
+
+export type OrchestrationPlan = {
+  id: string;
+  title: string;
+  description: string;
+  steps: OrchestrationStep[];
+  tags: Record<string, string>;
+  metadata: Record<string, unknown>;
+  url?: string;
+  version?: string;
+};
+
+export type OrchestrationRun = {
+  id: string;
+  planId: string;
+  status: RunStatus;
+  stepStates: OrchestrationStepState[];
+  createdAt: string;
+  updatedAt: string;
+  url?: string;
+  metadata: Record<string, unknown>;
+};
+
+export type PlanQuery = {
+  query?: string;           // Search in title/description
+  tags?: Record<string, string>;
+  scope?: QueryScope;
+  limit?: number;
+};
+
+export type RunQuery = {
+  statuses?: RunStatus[];
+  planIds?: string[];
+  scope?: QueryScope;
+  limit?: number;
+};
+
+export type CompleteStepRequest = {
+  note?: string;
+  actor?: string; // Auto-populated from user context
+};
