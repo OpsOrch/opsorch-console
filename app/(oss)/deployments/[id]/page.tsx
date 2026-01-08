@@ -58,7 +58,7 @@ export default function DeploymentDetailPage() {
       .catch((err) => {
         deploymentState.fail(err);
       });
-  }, [deploymentId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [deploymentId, deploymentState]);
 
 
 

@@ -13,9 +13,9 @@ export function ReferenceLinks({
         console.log('[ReferenceLinks] No references provided');
         return null;
     }
-    const { incidents, alerts, services, metrics, logs, tickets, deployments, teams } = references;
-    console.log('[ReferenceLinks] Extracted:', { incidents, alerts, services, metrics, logs, tickets, deployments, teams });
-    if (!incidents?.length && !alerts?.length && !services?.length && !metrics?.length && !logs?.length && !tickets?.length && !deployments?.length && !teams?.length) {
+    const { incidents, alerts, services, metrics, logs, tickets, deployments, teams, orchestrationPlans } = references;
+    console.log('[ReferenceLinks] Extracted:', { incidents, alerts, services, metrics, logs, tickets, deployments, teams, orchestrationPlans });
+    if (!incidents?.length && !alerts?.length && !services?.length && !metrics?.length && !logs?.length && !tickets?.length && !deployments?.length && !teams?.length && !orchestrationPlans?.length) {
         console.log('[ReferenceLinks] All reference arrays are empty');
         return null;
     }
@@ -36,7 +36,8 @@ export function ReferenceLinks({
         (logs?.length || 0) +
         (tickets?.length || 0) +
         (deployments?.length || 0) +
-        (teams?.length || 0);
+        (teams?.length || 0) +
+        (orchestrationPlans?.length || 0);
 
     return (
         <div className="space-y-2 text-xs text-slate-700">
@@ -70,11 +71,11 @@ export function ReferenceLinks({
                         const href = isString ? `/incidents/${inc}` : buildIncidentHref(inc);
                         const label = isString ? `Incident ${inc}` : inc.query || 'Incident Query';
                         return (
-                                    <a
-                                        key={`inc-${idx}`}
-                                        href={href}
-                                        className="group inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
-                                    >
+                            <a
+                                key={`inc-${idx}`}
+                                href={href}
+                                className="group inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
+                            >
                                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                 </svg>
@@ -92,11 +93,11 @@ export function ReferenceLinks({
                         const href = isString ? `/alerts/${alert}` : buildAlertHref(alert);
                         const label = isString ? alert : alert.query || 'Alert Query';
                         return (
-                                    <a
-                                        key={`alert-${idx}`}
-                                        href={href}
-                                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
-                                    >
+                            <a
+                                key={`alert-${idx}`}
+                                href={href}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
+                            >
                                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
                                 </svg>
@@ -133,11 +134,11 @@ export function ReferenceLinks({
                         }
 
                         return (
-                                    <a
-                                        key={`deployment-${idx}`}
-                                        href={href}
-                                        className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
-                                    >
+                            <a
+                                key={`deployment-${idx}`}
+                                href={href}
+                                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
+                            >
                                 <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
                                 </svg>
@@ -151,11 +152,11 @@ export function ReferenceLinks({
                 <div>
                     <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Services</p>
                     {renderList(services.map((svc) => (
-                                <a
-                                    key={`svc-${svc}`}
-                                    href={`/services/${svc}`}
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
-                                >
+                        <a
+                            key={`svc-${svc}`}
+                            href={`/services/${svc}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
+                        >
                             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01" />
                             </svg>
@@ -168,11 +169,11 @@ export function ReferenceLinks({
                 <div>
                     <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Teams</p>
                     {renderList(teams.map((team: string) => (
-                                <a
-                                    key={`team-${team}`}
-                                    href={`/teams/${team}`}
-                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
-                                >
+                        <a
+                            key={`team-${team}`}
+                            href={`/teams/${team}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
+                        >
                             <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                             </svg>
@@ -189,12 +190,12 @@ export function ReferenceLinks({
                             const label = `${t}`;
                             const href = t ? `/tickets?ticketId=${encodeURIComponent(t)}` : "/tickets";
                             return (
-                                        <a
-                                            key={`ticket-${t}`}
-                                            href={href}
-                                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
-                                            title="Open in tickets"
-                                        >
+                                <a
+                                    key={`ticket-${t}`}
+                                    href={href}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
+                                    title="Open in tickets"
+                                >
                                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
                                     </svg>
@@ -218,12 +219,12 @@ export function ReferenceLinks({
                                     : "(unnamed)";
                             const tooltip = `${m.start || "?"} → ${m.end || "?"}${m.scope ? ` • Scope: ${JSON.stringify(m.scope)}` : ""}`;
                             return (
-                                        <a
-                                            key={`metric-${idx}`}
-                                            href={buildMetricHref(m)}
-                                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
-                                            title={`Open in metrics • ${tooltip}`}
-                                        >
+                                <a
+                                    key={`metric-${idx}`}
+                                    href={buildMetricHref(m)}
+                                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
+                                    title={`Open in metrics • ${tooltip}`}
+                                >
                                     <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                                     </svg>
@@ -257,6 +258,23 @@ export function ReferenceLinks({
                             );
                         }),
                     )}
+                </div>
+            ) : null}
+            {isExpanded && orchestrationPlans?.length ? (
+                <div>
+                    <p className="mb-1 text-[10px] font-medium uppercase tracking-wide text-slate-400">Orchestration Plans</p>
+                    {renderList(orchestrationPlans.map((planId: string) => (
+                        <a
+                            key={`plan-${planId}`}
+                            href={`/orchestration/plans/${planId}`}
+                            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 font-medium text-slate-700 shadow-sm transition-all hover:border-slate-300 hover:bg-slate-50"
+                        >
+                            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                            </svg>
+                            {planId}
+                        </a>
+                    )))}
                 </div>
             ) : null}
         </div>

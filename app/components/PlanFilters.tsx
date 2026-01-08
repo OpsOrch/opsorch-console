@@ -6,15 +6,17 @@ import { PlanQuery } from "@/app/lib/types";
 interface PlanFiltersProps {
   onFilterChange: (filters: Partial<PlanQuery>) => void;
   loading?: boolean;
+  initialFilters?: Partial<PlanQuery>;
 }
 
-export function PlanFilters({ onFilterChange, loading }: PlanFiltersProps) {
-  const [query, setQuery] = useState("");
-  const [selectedType, setSelectedType] = useState("");
-  const [showAdvanced, setShowAdvanced] = useState(false);
-  const [service, setService] = useState("");
-  const [team, setTeam] = useState("");
-  const [environment, setEnvironment] = useState("");
+export function PlanFilters({ onFilterChange, loading, initialFilters }: PlanFiltersProps) {
+  const [query, setQuery] = useState(initialFilters?.query || "");
+  const [selectedType, setSelectedType] = useState(initialFilters?.tags?.type || "");
+  const [showAdvanced, setShowAdvanced] = useState(Boolean(initialFilters?.scope));
+  const [service, setService] = useState(initialFilters?.scope?.service || "");
+  const [team, setTeam] = useState(initialFilters?.scope?.team || "");
+  const [environment, setEnvironment] = useState(initialFilters?.scope?.environment || "");
+
 
   const handleSearch = () => {
     const filters: Partial<PlanQuery> = {

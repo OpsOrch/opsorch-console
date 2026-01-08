@@ -10,7 +10,7 @@ OpsOrch Console is the operator-focused web UI for OpsOrch. It provides a unifie
 
 OpsOrch Console is available in two editions built from a single codebase:
 
-- **OSS Edition** - Open source features including incidents, logs, metrics, tickets, services, and settings
+- **OSS Edition** - Open source features including incidents, logs, metrics, tickets, services, orchestration, and settings
 - **Enterprise Edition** - All OSS features plus AI-powered Copilot assistance and chat history
 
 The edition is controlled at build time via the `OPSORCH_EDITION` environment variable.
@@ -23,6 +23,7 @@ The edition is controlled at build time via the `OPSORCH_EDITION` environment va
 - **Metrics**: Visualize and query metrics data with customizable expressions and aggregations
 - **Services**: Explore service catalog and dependencies
 - **Tickets**: View and manage tickets from integrated ticketing systems
+- **Orchestration**: Browse workflow plans, launch runs, monitor run status, and complete manual steps with progress tracking
 - **Chat**: AI-powered assistance via OpsOrch Copilot for incident investigation, log analysis, and operational queries. Copilot can generate smart references to filtered views with query parameters
 - **Settings**: Configure OpsOrch Core and Copilot endpoints
 
@@ -34,6 +35,14 @@ All primary data views (Incidents, Alerts, Logs, Metrics) support:
 - **Status/Severity filters**: Multi-select filtering with comma-separated values
 - **Scope filtering**: Filter by service, environment, and team
 - **Copilot integration**: AI can generate filtered views and include them as clickable references
+
+### Copilot Answer Actions
+
+Copilot responses can include recommended actions to trigger orchestration workflows:
+
+- `actions` entries use the `orchestration` type and may include `id`, `name`, and `reason`
+- When an `id` is present, the UI links directly to `/orchestration/plans/{id}`
+- When no `id` is provided, the UI routes operators to the orchestration plan browser
 
 
 ## Architecture
@@ -202,7 +211,7 @@ The Docker images run as a non-root user and expose port 3000. Both editions sup
 ## Project Structure
 
 - `app/` - Next.js app router pages and layouts
-  - `(oss)/` - OSS Edition routes (incidents, logs, metrics, tickets, services, settings)
+  - `(oss)/` - OSS Edition routes (incidents, logs, metrics, tickets, services, orchestration, settings)
   - `(enterprise)/` - Enterprise Edition routes (Copilot home, chat history)
   - `components/` - Reusable React components
     - `(enterprise)/` - Enterprise-only components (CopilotPanel, etc.)
@@ -312,4 +321,3 @@ Download release artifacts from the [Releases page](https://github.com/OpsOrch/o
 - [OpsOrch Core Documentation](../opsorch-core/README.md)
 - [OpsOrch Copilot Documentation](../opsorch-copilot/README.md)
 - [Next.js Documentation](https://nextjs.org/docs)
-

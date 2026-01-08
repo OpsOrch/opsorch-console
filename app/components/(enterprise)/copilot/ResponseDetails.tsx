@@ -1,5 +1,6 @@
 import { Accordion, Badge } from "@/app/lib/ui";
 import { ReferenceLinks } from "./ReferenceLinks";
+import { ActionLinks } from "./ActionLinks";
 import { ToolExecutionsView } from "./ToolExecutionsView";
 import { CopilotAnswer } from "@/app/lib/types";
 import { stringifyData } from "@/app/lib/utils";
@@ -10,6 +11,9 @@ export function ResponseDetailsContent({ answer }: { answer: CopilotAnswer }) {
 
     return (
         <div className="space-y-3 px-3 text-sm">
+            {/* Recommended Actions */}
+            <ActionLinks actions={answer.actions} />
+
             {/* References */}
             <ReferenceLinks references={answer.references} />
 
@@ -47,6 +51,7 @@ export function ResponseDetails({ answer }: { answer: CopilotAnswer }) {
     const hasDetails =
         answer.missing?.length ||
         answer.references ||
+        answer.actions?.length ||
         answer.executionTrace;
 
     if (!hasDetails) return null;

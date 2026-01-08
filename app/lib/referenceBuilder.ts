@@ -40,7 +40,7 @@ export function buildToolExecutionHref(
       // Handle expression as object with search field
       const logExpression = args.expression as Record<string, unknown> | undefined;
       return buildLogHref({
-        expression: { 
+        expression: {
           search: logExpression?.search as string || args.query as string,
           filters: logExpression?.filters as LogReference["expression"]["filters"],
           severityIn: logExpression?.severityIn as string[],
@@ -121,6 +121,56 @@ export function buildToolExecutionHref(
         return `/incidents/${args.incidentId}?tab=timeline`;
       }
       return "/incidents";
+
+    case "query-orchestration-plans":
+      // Link to orchestration plans list, optionally with query params
+      const planParams = new URLSearchParams();
+      if (args.query) planParams.set("query", String(args.query));
+      if (args.scope) planParams.set("scope", JSON.stringify(args.scope));
+      const planQueryStr = planParams.toString();
+      return planQueryStr ? `/orchestration/plans?${planQueryStr}` : "/orchestration/plans";
+
+    case "get-orchestration-plan":
+      if (args.id) {
+        return `/orchestration/plans/${args.id}`;
+      }
+      if (args.planId) {
+        return `/orchestration/plans/${args.planId}`;
+      }
+      return "/orchestration/plans";
+
+    case "query-orchestration-runs":
+      // Link to orchestration runs list
+      const runParams = new URLSearchParams();
+      if (args.planIds && Array.isArray(args.planIds)) {
+        runParams.set("planIds", args.planIds.join(","));
+      }
+      if (args.statuses && Array.isArray(args.statuses)) {
+        runParams.set("statuses", args.statuses.join(","));
+      }
+      const runQueryStr = runParams.toString();
+      return runQueryStr ? `/orchestration/runs?${runQueryStr}` : "/orchestration/runs";
+
+    case "get-orchestration-run":
+      if (args.id) {
+        return `/orchestration/runs/${args.id}`;
+      }
+      if (args.runId) {
+        return `/orchestration/runs/${args.runId}`;
+      }
+      return "/orchestration/runs";
+
+    case "start-orchestration-run":
+      if (args.planId) {
+        return `/orchestration/plans/${args.planId}`;
+      }
+      return "/orchestration/plans";
+
+    case "complete-orchestration-step":
+      if (args.runId) {
+        return `/orchestration/runs/${args.runId}`;
+      }
+      return "/orchestration/runs";
 
     default:
       return null; // Unknown tool - no Console link
