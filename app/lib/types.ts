@@ -189,12 +189,21 @@ export type CopilotReferences = {
   tickets?: string[];
   deployments?: (string | DeploymentReference | Partial<DeploymentQuery>)[];
   teams?: string[];
+  orchestrationPlans?: string[];
+};
+
+export type CopilotAction = {
+  type: "orchestration";
+  id?: string;
+  name?: string;
+  reason?: string;
 };
 
 export type CopilotAnswer = {
   conclusion: string;
   missing?: string[];
   references?: CopilotReferences;
+  actions?: CopilotAction[];
   confidence?: number;
   chatId?: string;
   executionTrace?: TurnExecutionTrace;

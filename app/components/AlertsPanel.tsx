@@ -83,8 +83,7 @@ export function AlertsPanel({ initialQuery, readOnly = false }: AlertsPanelProps
             executeQuery(alertQuery);
         }, 0);
         return () => clearTimeout(timer);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [alertQuery, executeQuery]);
 
     return (
         <Section

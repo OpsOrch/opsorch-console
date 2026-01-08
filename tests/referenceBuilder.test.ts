@@ -375,6 +375,46 @@ describe('referenceBuilder', () => {
       assert.strictEqual(buildToolExecutionHref('get-incident-timeline', { id: 'inc-1' }), '/incidents/inc-1?tab=timeline');
     });
 
+    it('should handle query-orchestration-plans', () => {
+      const href = buildToolExecutionHref('query-orchestration-plans', {
+        query: 'restart',
+        scope: { service: 'api' }
+      });
+      assert.ok(href?.includes('/orchestration/plans?'));
+      assert.ok(href?.includes('query=restart'));
+      assert.ok(decodeURIComponent(href || '').includes('"service":"api"'));
+    });
+
+    it('should handle get-orchestration-plan with id', () => {
+      assert.strictEqual(buildToolExecutionHref('get-orchestration-plan', { id: 'plan-1' }), '/orchestration/plans/plan-1');
+    });
+
+    it('should handle get-orchestration-plan with planId', () => {
+      assert.strictEqual(buildToolExecutionHref('get-orchestration-plan', { planId: 'plan-2' }), '/orchestration/plans/plan-2');
+    });
+
+    it('should handle query-orchestration-runs', () => {
+      const href = buildToolExecutionHref('query-orchestration-runs', {
+        planIds: ['p1', 'p2'],
+        statuses: ['running']
+      });
+      assert.ok(href?.includes('/orchestration/runs?'));
+      assert.ok(href?.includes('planIds=p1%2Cp2'));
+      assert.ok(href?.includes('statuses=running'));
+    });
+
+    it('should handle get-orchestration-run with id', () => {
+      assert.strictEqual(buildToolExecutionHref('get-orchestration-run', { id: 'run-1' }), '/orchestration/runs/run-1');
+    });
+
+    it('should handle start-orchestration-run', () => {
+      assert.strictEqual(buildToolExecutionHref('start-orchestration-run', { planId: 'plan-1' }), '/orchestration/plans/plan-1');
+    });
+
+    it('should handle complete-orchestration-step', () => {
+      assert.strictEqual(buildToolExecutionHref('complete-orchestration-step', { runId: 'run-1' }), '/orchestration/runs/run-1');
+    });
+
     it('should return null for unknown tool', () => {
       assert.strictEqual(buildToolExecutionHref('unknown-tool', {}), null);
     });

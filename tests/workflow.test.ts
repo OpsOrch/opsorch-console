@@ -102,7 +102,6 @@ test("computeEdgePaths builds trunk + branches for fan-out", () => {
   const edgeCounts = getEdgeCounts(steps);
   const outgoingTargets = getOutgoingTargets(steps);
   const paths = computeEdgePaths({
-    steps,
     stepById,
     nodeRects,
     statusById,
@@ -135,7 +134,6 @@ test("computeEdgePaths flags blocked edges", () => {
   const edgeCounts = getEdgeCounts(steps);
   const outgoingTargets = getOutgoingTargets(steps);
   const paths = computeEdgePaths({
-    steps,
     stepById,
     nodeRects,
     statusById,

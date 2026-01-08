@@ -48,14 +48,19 @@ function normalizeAnswer(payload: CopilotApiResponse): CopilotAnswer {
   // Extract executionTrace from the answer
   const derivedExecutionTrace = answer.executionTrace;
 
+  // Extract actions from the answer
+  const derivedActions = answer.actions;
+
   console.log('[normalizeAnswer] answer.references:', answer.references);
   console.log('[normalizeAnswer] derivedReferences:', derivedReferences);
   console.log('[normalizeAnswer] executionTrace:', derivedExecutionTrace);
+  console.log('[normalizeAnswer] actions:', derivedActions);
 
   return {
     conclusion: derivedConclusion,
     missing: answer.missing,
     references: derivedReferences,
+    actions: derivedActions,
     confidence: answer.confidence,
     chatId: derivedChatId,
     executionTrace: derivedExecutionTrace,

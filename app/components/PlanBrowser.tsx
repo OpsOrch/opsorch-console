@@ -1,17 +1,46 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAsyncState } from "@/app/lib/hooks";
 import { queryPlans } from "@/app/lib/orchestration";
-import { OrchestrationPlan, PlanQuery } from "@/app/lib/types";
+import { OrchestrationPlan, PlanQuery, QueryScope } from "@/app/lib/types";
 import { PlanGrid } from "@/app/components/PlanGrid";
 import { PlanFilters } from "@/app/components/PlanFilters";
 
 export function PlanBrowser() {
+  const searchParams = useSearchParams();
   const [plans, setPlans] = useState<OrchestrationPlan[]>([]);
   const [currentFilters, setCurrentFilters] = useState<Partial<PlanQuery>>({});
+  const [initialFilters, setInitialFilters] = useState<Partial<PlanQuery> | null>(null);
   const asyncState = useAsyncState();
   const { start, succeed, fail } = asyncState;
+
+  // Parse URL params on mount
+  useEffect(() => {
+    const scopeParam = searchParams.get("scope");
+    const queryParam = searchParams.get("query");
+
+    const filters: Partial<PlanQuery> = {};
+
+    if (scopeParam) {
+      try {
+        filters.scope = JSON.parse(scopeParam) as QueryScope;
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
+
+    if (queryParam) {
+      filters.query = queryParam;
+    }
+
+    // Use an async function and microtask to set state to avoid direct setState in effect
+    Promise.resolve().then(() => {
+      setInitialFilters(filters);
+      setCurrentFilters(filters);
+    });
+  }, [searchParams]);
 
   const loadPlans = useCallback(
     async (filters: Partial<PlanQuery> = {}) => {
@@ -35,20 +64,24 @@ export function PlanBrowser() {
     loadPlans(filters);
   };
 
-  // Load initial plans
+  // Load plans once initial filters are parsed
   useEffect(() => {
-    const timeoutId = setTimeout(() => {
-      void loadPlans();
-    }, 0);
-    return () => clearTimeout(timeoutId);
-  }, [loadPlans]);
+    if (initialFilters !== null) {
+      const timeoutId = setTimeout(() => {
+        void loadPlans(initialFilters);
+      }, 0);
+      return () => clearTimeout(timeoutId);
+    }
+  }, [initialFilters, loadPlans]);
 
   return (
     <div className="space-y-6">
       {/* Filters */}
-      <PlanFilters 
+      <PlanFilters
+        key={JSON.stringify(initialFilters)}
         onFilterChange={handleFilterChange}
         loading={asyncState.loading}
+        initialFilters={initialFilters || undefined}
       />
 
       {/* Results Header */}
@@ -78,7 +111,7 @@ export function PlanBrowser() {
       </div>
 
       {/* Plan Grid */}
-      <PlanGrid 
+      <PlanGrid
         plans={plans}
         loading={asyncState.loading}
         error={asyncState.error}
