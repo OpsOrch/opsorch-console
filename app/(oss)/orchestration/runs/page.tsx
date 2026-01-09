@@ -1,6 +1,6 @@
 'use client';
 
-import React, { Suspense } from 'react';
+import { Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { OrchestrationLayout } from '@/app/components/OrchestrationLayout';
 import { RunBrowser } from '@/app/components/RunBrowser';
@@ -9,16 +9,16 @@ import { parseScope } from '@/app/lib/scope';
 
 function RunsPageContent() {
   const searchParams = useSearchParams();
-  
+
   // Parse initial query from URL parameters
   const initialQuery: Partial<RunQuery> = {};
-  
+
   const statusParam = searchParams.get('status') || searchParams.get('statuses');
   if (statusParam) {
     const statuses = statusParam.split(',') as RunStatus[];
     initialQuery.statuses = statuses;
   }
-  
+
   const planIdParam = searchParams.get('planId') || searchParams.get('planIds');
   if (planIdParam) {
     initialQuery.planIds = planIdParam.split(',').filter(Boolean);
@@ -37,7 +37,7 @@ function RunsPageContent() {
   const service = searchParams.get('service');
   const environment = searchParams.get('environment');
   const team = searchParams.get('team');
-  
+
   if (parsedScope) {
     initialQuery.scope = parsedScope;
   } else if (service || environment || team) {
@@ -53,7 +53,7 @@ function RunsPageContent() {
 
 export default function RunsPage() {
   return (
-    <OrchestrationLayout 
+    <OrchestrationLayout
       title="Workflow Runs"
       description="Browse and monitor orchestration workflow runs"
     >

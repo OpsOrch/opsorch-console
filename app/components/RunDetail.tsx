@@ -169,12 +169,12 @@ export function RunDetail({ runId }: RunDetailProps) {
   return (
     <div className="space-y-6">
       {/* Run Header */}
-      <div className="bg-white shadow rounded-lg p-4">
-        <div className="flex items-start justify-between">
-          <div className="flex-1">
-            <div className="flex items-center gap-3 mb-4">
+      <div className="bg-white shadow rounded-lg p-6">
+        <div className="grid gap-4 md:grid-cols-[1fr_auto] md:items-start">
+          <div>
+            <div className="flex items-center gap-3 mb-2">
               <h1 className="text-2xl font-bold text-gray-900">
-                Run {run.id}
+                {plan?.title ?? `Run ${run.id}`}
               </h1>
               <span
                 className={`
@@ -186,72 +186,98 @@ export function RunDetail({ runId }: RunDetailProps) {
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 text-sm">
-              <div>
-                <span className="font-medium text-gray-500">Plan:</span>
-                <div className="text-gray-900">{run.planId}</div>
-              </div>
-              <div>
-                <span className="font-medium text-gray-500">Progress:</span>
-                <div className="text-gray-900">
-                  {progress.completed}/{progress.total} steps ({progress.percentage}%)
-                </div>
-              </div>
-              <div>
-                <span className="font-medium text-gray-500">Created:</span>
-                <div className="text-gray-900">{formatDate(run.createdAt)}</div>
-              </div>
-              <div>
-                <span className="font-medium text-gray-500">Updated:</span>
-                <div className="text-gray-900">{formatDate(run.updatedAt)}</div>
-              </div>
-              {plan?.url && (
-                <div>
-                  <span className="font-medium text-gray-500">Workflow:</span>
-                  <a
-                    href={plan.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-2 inline-flex items-center gap-1 rounded-lg border border-[#8fdede] bg-white px-2 py-1 text-xs font-medium text-[#0f1a1d] transition hover:border-[#55cfd0] hover:text-[#0b1517]"
-                  >
-                    <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                    </svg>
-                    Open plan in Tool
-                  </a>
-                </div>
-              )}
-            </div>
+            {plan?.description && (
+              <p className="text-gray-600 mb-3">
+                {plan.description}
+              </p>
+            )}
 
-            {/* Progress Bar */}
-            <div className="mt-4">
-              <div className="w-full bg-gray-200 rounded-full h-3">
-                <div
-                  className={`h-3 rounded-full transition-all duration-300 ${run.status === 'completed' ? 'bg-green-500' :
-                      run.status === 'failed' ? 'bg-red-500' :
-                        run.status === 'blocked' ? 'bg-amber-500' :
-                          'bg-blue-500'
-                    }`}
-                  style={{ width: `${progress.percentage}%` }}
-                />
-              </div>
+            <div className="text-sm text-gray-500">
+              <span className="font-medium text-gray-500">Run Id:</span>{' '}
+              <span className="font-mono text-[11px] text-gray-600">{run.id}</span>
             </div>
+          </div>
 
+          <div className="md:justify-self-end flex flex-wrap items-center gap-2">
+            <a
+              href={`/orchestration/plans/${run.planId}`}
+              className="inline-flex items-center gap-1 rounded-lg border border-[#8fdede] bg-white px-2 py-1 text-xs font-medium text-[#0f1a1d] transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+            >
+              View plan
+              <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </a>
+            {plan?.url && (
+              <a
+                href={plan.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-lg border border-[#8fdede] bg-white px-2 py-1 text-xs font-medium text-[#0f1a1d] transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+              >
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                Open plan in Tool
+              </a>
+            )}
             {run.url && (
-              <div className="mt-4">
-                <a
-                  href={run.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 rounded-lg border border-[#8fdede] bg-white px-2 py-1 text-xs font-medium text-[#0f1a1d] transition hover:border-[#55cfd0] hover:text-[#0b1517]"
-                >
-                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-                  </svg>
-                  Open run in Tool
-                </a>
+              <a
+                href={run.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 rounded-lg border border-[#8fdede] bg-white px-2 py-1 text-xs font-medium text-[#0f1a1d] transition hover:border-[#55cfd0] hover:text-[#0b1517]"
+              >
+                <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                </svg>
+                Open run in Tool
+              </a>
+            )}
+          </div>
+
+          <div className="flex flex-wrap items-end gap-4 text-sm text-gray-500 md:col-span-2">
+            <div>
+              <span className="font-medium">Plan:</span> {run.planId}
+            </div>
+            <div>
+              <span className="font-medium">Progress:</span> {progress.completed}/{progress.total} steps ({progress.percentage}%)
+            </div>
+            <div>
+              <span className="font-medium">Created:</span> {formatDate(run.createdAt)}
+            </div>
+            <div>
+              <span className="font-medium">Updated:</span> {formatDate(run.updatedAt)}
+            </div>
+            {plan?.version && (
+              <div>
+                <span className="font-medium">Version:</span> {plan.version}
               </div>
             )}
+            {plan && Object.keys(plan.tags).length > 0 && (
+              <div>
+                <span className="font-medium">Tags:</span>{' '}
+                {Object.entries(plan.tags).map(([key, value]) => (
+                  <span key={key} className="inline-block bg-gray-100 rounded px-2 py-1 text-xs mr-1">
+                    {key}: {value}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Progress Bar */}
+        <div className="mt-4">
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div
+              className={`h-3 rounded-full transition-all duration-300 ${run.status === 'completed' ? 'bg-green-500' :
+                  run.status === 'failed' ? 'bg-red-500' :
+                    run.status === 'blocked' ? 'bg-amber-500' :
+                      'bg-blue-500'
+                }`}
+              style={{ width: `${progress.percentage}%` }}
+            />
           </div>
         </div>
       </div>

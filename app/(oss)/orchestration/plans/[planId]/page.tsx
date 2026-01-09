@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import { OrchestrationLayout } from '@/app/components/OrchestrationLayout';
 import { PlanDetail } from '@/app/components/PlanDetail';
@@ -11,7 +11,9 @@ export default function PlanDetailPage() {
 
   return (
     <OrchestrationLayout title="Plan Details">
-      <PlanDetail planId={planId} />
+      <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading...</div>}>
+        <PlanDetail planId={planId} />
+      </Suspense>
     </OrchestrationLayout>
   );
 }

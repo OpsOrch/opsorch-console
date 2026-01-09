@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import { OrchestrationLayout } from '@/app/components/OrchestrationLayout';
 import { RunDetail } from '@/app/components/RunDetail';
@@ -11,7 +11,9 @@ export default function RunDetailPage() {
 
   return (
     <OrchestrationLayout title="Run Details">
-      <RunDetail runId={runId} />
+      <Suspense fallback={<div className="p-8 text-center text-gray-500">Loading...</div>}>
+        <RunDetail runId={runId} />
+      </Suspense>
     </OrchestrationLayout>
   );
 }
