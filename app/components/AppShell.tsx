@@ -4,17 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode, useMemo } from "react";
-import { isEnterprise } from "@/app/lib/edition";
-
-type NavItem = {
-  href: string;
-  label: string;
-  edition?: "enterprise" | "oss" | "both";
-};
-
-const allNavItems: NavItem[] = [
-  { href: "/", label: "Home" }, // Available in both editions
-  { href: "/chats", label: "Chats", edition: "enterprise" },
+const navItems = [
+  { href: "/", label: "Home" },
+  { href: "/chats", label: "Chats" },
   { href: "/incidents", label: "Incidents" },
   { href: "/alerts", label: "Alerts" },
   { href: "/logs", label: "Logs" },
@@ -26,14 +18,6 @@ const allNavItems: NavItem[] = [
   { href: "/teams", label: "Teams" },
   { href: "/settings", label: "Settings" },
 ];
-
-// Filter navigation items based on edition
-const navItems = allNavItems.filter((item) => {
-  if (!item.edition || item.edition === "both") return true;
-  if (item.edition === "enterprise") return isEnterprise();
-  if (item.edition === "oss") return !isEnterprise();
-  return true;
-});
 
 export function AppShell({
   title,

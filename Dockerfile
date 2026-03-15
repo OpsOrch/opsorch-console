@@ -21,10 +21,6 @@ RUN npm ci
 
 COPY . .
 
-# Build for OSS edition by default, can be overridden with build args
-ARG NEXT_PUBLIC_OPSORCH_EDITION=oss
-ENV NEXT_PUBLIC_OPSORCH_EDITION=${NEXT_PUBLIC_OPSORCH_EDITION}
-
 # Build the application
 RUN npm run build
 

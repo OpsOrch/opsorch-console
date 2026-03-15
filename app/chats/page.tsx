@@ -3,10 +3,8 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "@/app/components/AppShell";
-import { ChatHistory } from "@/app/components/(enterprise)/copilot/ChatHistory";
+import { ChatHistory } from "@/app/components/copilot/ChatHistory";
 import { Section } from "@/app/lib/ui";
-import { isEnterprise } from "@/app/lib/edition";
-import { EnterpriseOnly } from "@/app/components/EnterpriseOnly";
 
 export default function ChatsPage() {
     const router = useRouter();
@@ -21,14 +19,6 @@ export default function ChatsPage() {
 
         return () => clearTimeout(timer);
     }, [searchQuery]);
-
-    if (!isEnterprise()) {
-        return (
-            <AppShell title="Chat History">
-                <EnterpriseOnly featureName="Chat History" />
-            </AppShell>
-        );
-    }
 
     const handleClear = () => {
         setSearchQuery("");
