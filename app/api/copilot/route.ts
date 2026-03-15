@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { trimTrailingSlash } from "@/app/lib/api";
-import { isEnterprise } from "@/app/lib/edition";
 
 const COPILOT_BASE_URL = trimTrailingSlash(
   process.env.OPS_ORCH_COPILOT_BASE_URL ||
@@ -25,13 +24,6 @@ function propagateChatId(payload: unknown, fallback?: string) {
 }
 
 export async function POST(req: NextRequest) {
-  if (!isEnterprise()) {
-    return NextResponse.json(
-      { error: "Copilot is only available in Enterprise Edition" },
-      { status: 404 }
-    );
-  }
-
   let body: { message?: string; chatId?: string };
   try {
     body = (await req.json()) as { message?: string; chatId?: string };

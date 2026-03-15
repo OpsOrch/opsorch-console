@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
 import { trimTrailingSlash } from "@/app/lib/api";
-import { isEnterprise } from "@/app/lib/edition";
 
 const COPILOT_BASE_URL = trimTrailingSlash(
     process.env.OPS_ORCH_COPILOT_BASE_URL ||
@@ -15,13 +14,6 @@ export async function GET(
     request: NextRequest,
     { params }: { params: Promise<{ chatId: string }> }
 ) {
-    if (!isEnterprise()) {
-        return NextResponse.json(
-            { error: "Chat details are only available in Enterprise Edition" },
-            { status: 404 }
-        );
-    }
-
     const { chatId } = await params;
 
     if (!chatId) {

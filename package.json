@@ -1,7 +1,7 @@
 {
   "name": "opsorch-console",
   "version": "0.1.0",
-  "license": "SEE LICENSE IN LICENSE",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/OpsOrch/opsorch-console.git"
@@ -25,28 +25,26 @@
   "author": "OpsOrch",
   "scripts": {
     "dev": "next dev",
-    "dev:oss": "NEXT_PUBLIC_OPSORCH_EDITION=oss next dev",
-    "dev:enterprise": "NEXT_PUBLIC_OPSORCH_EDITION=enterprise next dev",
     "build": "next build",
-    "build:oss": "NEXT_PUBLIC_OPSORCH_EDITION=oss next build",
-    "build:enterprise": "NEXT_PUBLIC_OPSORCH_EDITION=enterprise next build",
     "start": "next start",
     "lint": "eslint",
     "test": "node --test --loader ./scripts/ts-loader.mjs tests/*.test.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.90.10",
-    "next": "16.0.3",
-    "react": "19.2.0",
-    "react-dom": "19.2.0"
+    "geist": "^1.7.0",
+    "next": "^16.1.6",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "baseline-browser-mapping": "^2.10.8",
     "eslint": "^9",
-    "eslint-config-next": "16.0.3",
+    "eslint-config-next": "^16.1.6",
     "tailwindcss": "^4",
     "typescript": "^5"
   }
