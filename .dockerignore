@@ -1,35 +1,5 @@
-# Dependencies
 node_modules
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-
-# Build artifacts
 .next
-out
-
-# Development files
-.env*.local
-.vscode
-.DS_Store
-*.tsbuildinfo
-
-# Testing
-tests/
-coverage/
-
-# Git
 .git
-.gitignore
-
-# Documentation
-README.md
-*.md
-
-# CI/CD
-.github/
-.kiro/
-
-# Logs
-logs
-*.log
+coverage
+npm-debug.log
