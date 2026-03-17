@@ -4,10 +4,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { CopilotAnswer, CopilotReferences, TurnExecutionTrace } from "@/app/lib/types";
 import { useAsyncState } from "@/app/lib/hooks";
 import { Field, Pill, Section, TextArea } from "@/app/lib/ui";
+import { ChatSharePanel } from "@/app/components/copilot/ChatSharePanel";
 import { ConfidenceBar } from "@/app/components/copilot/ConfidenceBar";
 import { CopilotConclusion } from "@/app/components/copilot/CopilotConclusion";
 import { ResponseDetailsContent } from "@/app/components/copilot/ResponseDetails";
 import { parseJsonString, stringifyData } from "@/app/lib/utils";
+import { type ShareableChatTurn } from "@/app/lib/chatShare";
 
 type CopilotTurn = {
   id: string;
@@ -83,6 +85,15 @@ export function CopilotPanel({ initialChatId }: { initialChatId?: string }) {
     [turns.length],
   );
   const showSessionStamp = Boolean(chatId);
+  const shareableTurns = useMemo<ShareableChatTurn[]>(
+    () =>
+      turns.map((turn) => ({
+        role: turn.role,
+        text: turn.role === "copilot" ? turn.answer?.conclusion || turn.text : turn.text,
+      })),
+    [turns],
+  );
+  const canShare = Boolean(chatId) && shareableTurns.length > 0;
 
   const ask = async () => {
     const trimmed = question.trim();
@@ -191,6 +202,7 @@ export function CopilotPanel({ initialChatId }: { initialChatId?: string }) {
         title="Copilot"
         action={
           <div className="flex items-center gap-3 text-xs">
+            {canShare && chatId ? <ChatSharePanel chatId={chatId} turns={shareableTurns} /> : null}
             <button
               type="button"
               onClick={() => {
